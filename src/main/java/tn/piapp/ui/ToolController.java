@@ -151,7 +151,8 @@ public class ToolController {
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
 
-        loadData();
+        // Do NOT call loadData() here — setCurrentUser() will trigger it
+        // with the correct role-scoped query once the user is injected.
     }
 
     /**

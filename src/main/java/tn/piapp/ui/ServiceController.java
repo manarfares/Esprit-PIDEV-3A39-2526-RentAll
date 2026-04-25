@@ -151,9 +151,8 @@ public class ServiceController {
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
 
-        // Note: loadData() and role-based UI setup are called from setCurrentUser()
-        // If no user is set yet (e.g. admin opens main.fxml directly), load all data
-        loadData();
+        // Do NOT call loadData() here — setCurrentUser() will trigger it
+        // with the correct role-scoped query once the user is injected.
     }
 
     /**
