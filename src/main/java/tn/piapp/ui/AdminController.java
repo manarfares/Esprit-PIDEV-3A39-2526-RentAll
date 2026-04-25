@@ -12,7 +12,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import tn.piapp.model.User;
 import tn.piapp.dao.ServiceUser;
-
 public class AdminController {
 
     @FXML private Label                      lblWelcome;
@@ -231,6 +230,25 @@ public class AdminController {
         service.updateStatus(selected.getId(), "ACTIVE");
         showMessage("✅ Utilisateur activé → " + selected.getName(), true);
         filtrerUsers();
+    }
+
+    // ── Tools & Services ───────────────────────
+    @FXML
+    public void handleOpenToolsServices() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/tn/piapp/ui/main.fxml"));
+            Parent root = loader.load();
+            MainController ctrl = loader.getController();
+            ctrl.setCurrentUser(currentUser);
+            Stage stage = (Stage) lblWelcome.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showMessage("❌ Erreur ouverture Tools & Services : " + e.getMessage(), false);
+        }
     }
 
     // ── Déconnexion ────────────────────────────

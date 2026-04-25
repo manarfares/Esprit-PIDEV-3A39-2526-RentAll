@@ -36,18 +36,28 @@ public class MainController {
         if (toolController    != null) toolController.setCurrentUser(user);
     }
 
-    /** Navigates back to home.fxml, passing the current user. */
+    /** Navigates back — admin goes to dashboard, others go to home. */
     @FXML
     public void handleRetourAccueil() {
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/home.fxml"));
-            Parent root = loader.load();
-            HomeController ctrl = loader.getController();
-            ctrl.setCurrentUser(currentUser);
-
             Stage stage = (Stage) lblConnected.getScene().getWindow();
-            stage.setScene(new Scene(root));
+
+            if (currentUser != null && currentUser.getRole().equals("ROLE_ADMIN")) {
+                FXMLLoader loader = new FXMLLoader(
+                        getClass().getResource("/dashboard_admin.fxml"));
+                Parent root = loader.load();
+                AdminController ctrl = loader.getController();
+                ctrl.setCurrentUser(currentUser);
+                stage.setScene(new Scene(root));
+            } else {
+                FXMLLoader loader = new FXMLLoader(
+                        getClass().getResource("/home.fxml"));
+                Parent root = loader.load();
+                HomeController ctrl = loader.getController();
+                ctrl.setCurrentUser(currentUser);
+                stage.setScene(new Scene(root));
+            }
+
             stage.setMaximized(true);
             stage.show();
         } catch (Exception e) {
