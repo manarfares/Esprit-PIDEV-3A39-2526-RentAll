@@ -4,7 +4,7 @@
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.AdminController"
+            fx:controller="tn.piapp.ui.AdminController"
             prefWidth="1100" prefHeight="700"
             style="-fx-background-color: #f8f9fa;">
 
@@ -27,6 +27,13 @@
 
             <Label fx:id="lblWelcome"
                    style="-fx-font-size: 13px; -fx-text-fill: white;"/>
+
+            <Button text="🔧 Tools &amp; Services"
+                    onAction="#handleOpenToolsServices"
+                    style="-fx-background-color: rgba(255,255,255,0.2);
+                           -fx-text-fill: white; -fx-font-size: 12px;
+                           -fx-background-radius: 20; -fx-cursor: hand;
+                           -fx-padding: 8 16 8 16;"/>
 
             <Button text="🚪 Déconnexion"
                     onAction="#handleLogout"

@@ -4,7 +4,7 @@
 <?import javafx.geometry.*?>
 
 <HBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controllers.RegisterController"
+      fx:controller="tn.piapp.ui.RegisterController"
       prefWidth="900" prefHeight="620"
       style="-fx-background-color: white;">
 

@@ -4,7 +4,7 @@
 <?import javafx.geometry.*?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controllers.DeleteUserController"
+      fx:controller="tn.piapp.ui.DeleteUserController"
       prefWidth="430" prefHeight="300"
       spacing="0"
       alignment="TOP_CENTER"

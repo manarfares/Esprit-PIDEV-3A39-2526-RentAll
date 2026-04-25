@@ -4,7 +4,7 @@
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.HostController"
+            fx:controller="tn.piapp.ui.HostController"
             prefWidth="950" prefHeight="650"
             style="-fx-background-color: #f8f9fa;">
 

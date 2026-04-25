@@ -4,7 +4,7 @@
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.HomeController"
+            fx:controller="tn.piapp.ui.HomeController"
             prefWidth="1100" prefHeight="700"
             style="-fx-background-color: #f8f9fa;">
 
@@ -37,7 +37,9 @@
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
-                    <Button text="🔧 Services"
+                    <Button text="🔧 Tools &amp; Services"
+                            fx:id="btnToolsServices"
+                            onAction="#handleOpenToolsServices"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
