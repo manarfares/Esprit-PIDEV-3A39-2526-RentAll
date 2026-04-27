@@ -16,7 +16,9 @@ public class Service {
     private LocalDateTime updatedAt;
     private int hostId;
     private String imageName;
-    private Integer categoryId; // nullable; maps to category_id column
+    private Integer categoryId;
+    private Double latitude;
+    private Double longitude;
 
     public Service() {}
 
@@ -72,4 +74,10 @@ public class Service {
 
     public Integer getCategoryId() { return categoryId; }
     public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 }

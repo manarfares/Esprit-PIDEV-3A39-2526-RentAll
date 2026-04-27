@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Admin category management dialog.
+    Controller: CategoryAdminController
+-->
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="tn.piapp.ui.CategoryAdminController"
+      spacing="0"
+      style="-fx-background-color: #F6F7FB; -fx-pref-width: 620; -fx-pref-height: 500;">
+
+    <!-- Header strip -->
+    <Pane styleClass="gradient-strip" minHeight="4" maxHeight="4" prefHeight="4"/>
+
+    <!-- Title bar -->
+    <HBox alignment="CENTER_LEFT" spacing="12"
+          style="-fx-background-color: white;
+                 -fx-padding: 14 20 14 20;
+                 -fx-border-color: #E6E8EF; -fx-border-width: 0 0 1 0;">
+        <Label text="🗂️ Manage Categories"
+               style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <!-- Type filter -->
+        <Label text="Filter:" style="-fx-font-size: 12px; -fx-text-fill: #7f8c8d;"/>
+        <ComboBox fx:id="cbTypeFilter" prefWidth="130"
+                  style="-fx-font-size: 12px;"/>
+    </HBox>
+
+    <!-- Toolbar -->
+    <HBox spacing="8" alignment="CENTER_LEFT"
+          style="-fx-padding: 10 20 10 20; -fx-background-color: #F6F7FB;">
+        <Button fx:id="btnAdd" text="+ Add Category" styleClass="btn-add" onAction="#onAdd"/>
+        <Button fx:id="btnEdit" text="Edit" styleClass="btn-edit" onAction="#onEdit"/>
+        <Button fx:id="btnDelete" text="Delete" styleClass="btn-delete" onAction="#onDelete"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblStatus"
+               style="-fx-font-size: 11px; -fx-text-fill: #95a5a6;"/>
+    </HBox>
+
+    <!-- Table -->
+    <VBox VBox.vgrow="ALWAYS" style="-fx-padding: 0 20 0 20;">
+        <TableView fx:id="tableView" VBox.vgrow="ALWAYS"
+                   style="-fx-background-color: white;
+                          -fx-border-color: #E6E8EF; -fx-border-radius: 8;
+                          -fx-background-radius: 8;">
+            <columns>
+                <TableColumn fx:id="colId"   text="ID"   prefWidth="55"/>
+                <TableColumn fx:id="colName" text="NAME" prefWidth="280"/>
+                <TableColumn fx:id="colType" text="TYPE" prefWidth="120"/>
+            </columns>
+            <placeholder>
+                <Label text="No categories found"
+                       style="-fx-text-fill: #95a5a6;"/>
+            </placeholder>
+        </TableView>
+    </VBox>
+
+    <!-- Bottom message -->
+    <HBox style="-fx-padding: 10 20 14 20;">
+        <Label fx:id="lblMessage" text=""
+               style="-fx-font-size: 11px;"/>
+    </HBox>
+
+</VBox>

@@ -13,6 +13,7 @@ public class MainController {
     @FXML private ServiceController serviceController;
     @FXML private ToolController    toolController;
     @FXML private Label             lblConnected;
+    @FXML private Label             lblContext;
 
     private User currentUser;
 
@@ -29,9 +30,23 @@ public class MainController {
      */
     public void setCurrentUser(User user) {
         this.currentUser = user;
+
+        // Connected indicator
         if (lblConnected != null) {
-            lblConnected.setText("● " + user.getName() + " (" + user.getRole() + ")");
+            lblConnected.setText("● " + user.getName());
         }
+
+        // Context label — role-aware title
+        if (lblContext != null) {
+            String ctx = switch (user.getRole()) {
+                case "ROLE_ADMIN"        -> "⚙️ Admin Panel";
+                case "ROLE_HOST"         -> "🏠 My Listings — " + user.getName();
+                case "ROLE_HOST_PENDING" -> "⏳ My Listings (Pending) — " + user.getName();
+                default                  -> "🔧 Tools & Services";
+            };
+            lblContext.setText(ctx);
+        }
+
         if (serviceController != null) serviceController.setCurrentUser(user);
         if (toolController    != null) toolController.setCurrentUser(user);
     }

@@ -12,6 +12,7 @@
 -->
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="rootPane"
             fx:controller="tn.piapp.ui.GuestBrowseController"
             style="-fx-background-color: #f8f9fa;">
     <stylesheets>
@@ -39,7 +40,7 @@
 
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <Button text="🏠 Accueil" onAction="#handleRetourAccueil"
+                <Button text="Accueil" onAction="#handleRetourAccueil"
                         style="-fx-background-color: transparent; -fx-text-fill: #6C63FF;
                                -fx-font-size: 12px; -fx-font-weight: bold;
                                -fx-cursor: hand; -fx-border-color: #6C63FF;
@@ -55,18 +56,21 @@
                          -fx-padding: 10 24 10 24;
                          -fx-border-color: #E6E8EF; -fx-border-width: 0 0 1 0;">
 
-                <!-- Tab toggle: Services / Tools -->
-                <ToggleButton fx:id="tbServices" text="🔧 Services"
+                <!-- Tab toggle: Services / Tools / Map -->
+                <ToggleButton fx:id="tbServices" text="Services"
                               style="-fx-background-radius: 20; -fx-cursor: hand;
                                      -fx-font-size: 12px; -fx-padding: 6 16 6 16;"/>
-                <ToggleButton fx:id="tbTools" text="🛠️ Tools"
+                <ToggleButton fx:id="tbTools" text="Tools"
+                              style="-fx-background-radius: 20; -fx-cursor: hand;
+                                     -fx-font-size: 12px; -fx-padding: 6 16 6 16;"/>
+                <ToggleButton fx:id="tbMap" text="Map"
                               style="-fx-background-radius: 20; -fx-cursor: hand;
                                      -fx-font-size: 12px; -fx-padding: 6 16 6 16;"/>
 
                 <Separator orientation="VERTICAL" style="-fx-padding: 0 4 0 4;"/>
 
                 <!-- Search -->
-                <TextField fx:id="tfSearch" promptText="🔍  Search..."
+                <TextField fx:id="tfSearch" promptText="Search..."
                            prefWidth="220" styleClass="search-field"/>
 
                 <!-- Location filter -->
@@ -88,9 +92,9 @@
         </VBox>
     </top>
 
-    <!-- ── Card grid ── -->
+    <!-- ── Card scroll view (default center) ── -->
     <center>
-        <ScrollPane fitToWidth="true"
+        <ScrollPane fx:id="scrollCards" fitToWidth="true"
                     style="-fx-background-color: transparent;
                            -fx-background: transparent;
                            -fx-border-color: transparent;">
@@ -98,7 +102,7 @@
 
                 <!-- Section title -->
                 <Label fx:id="lblSectionTitle"
-                       text="🔧 Services disponibles"
+                       text="Services disponibles"
                        style="-fx-font-size: 20px; -fx-font-weight: bold;
                               -fx-text-fill: #2c3e50;"/>
 
@@ -110,12 +114,10 @@
                 <!-- Empty state -->
                 <VBox fx:id="emptyState" alignment="CENTER" spacing="10"
                       style="-fx-padding: 60 0 60 0;" visible="false" managed="false">
-                    <Label text="😕"
-                           style="-fx-font-size: 48px;"/>
-                    <Label text="Aucun résultat trouvé"
+                    <Label text="No results found"
                            style="-fx-font-size: 16px; -fx-font-weight: bold;
                                   -fx-text-fill: #7f8c8d;"/>
-                    <Label text="Essayez de modifier vos filtres"
+                    <Label text="Try adjusting your filters"
                            style="-fx-font-size: 12px; -fx-text-fill: #95a5a6;"/>
                 </VBox>
 

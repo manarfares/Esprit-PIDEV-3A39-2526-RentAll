@@ -8,29 +8,31 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ServiceDao {
 
     private static final String FIND_ALL =
             "SELECT id, name, description, base_price, duration_minutes, location, is_active, " +
-            "created_at, updated_at, host_id, image_name, category_id FROM service";
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM service";
 
     private static final String FIND_ALL_ACTIVE =
             "SELECT id, name, description, base_price, duration_minutes, location, is_active, " +
-            "created_at, updated_at, host_id, image_name, category_id FROM service WHERE is_active = 1";
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM service WHERE is_active = 1";
 
     private static final String FIND_BY_HOST =
             "SELECT id, name, description, base_price, duration_minutes, location, is_active, " +
-            "created_at, updated_at, host_id, image_name, category_id FROM service WHERE host_id = ?";
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM service WHERE host_id = ?";
 
     private static final String INSERT =
             "INSERT INTO service (name, description, base_price, duration_minutes, location, " +
-            "is_active, created_at, updated_at, host_id, image_name, category_id) " +
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+            "is_active, created_at, updated_at, host_id, image_name, category_id, latitude, longitude) " +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String UPDATE =
             "UPDATE service SET name=?, description=?, base_price=?, duration_minutes=?, " +
-            "location=?, is_active=?, updated_at=?, image_name=?, category_id=? WHERE id=?";
+            "location=?, is_active=?, updated_at=?, image_name=?, category_id=?, " +
+            "latitude=?, longitude=? WHERE id=?";
 
     private static final String DELETE =
             "DELETE FROM service WHERE id=?";
@@ -40,6 +42,9 @@ public class ServiceDao {
 
     private static final String PRICES_BY_CATEGORY =
             "SELECT base_price FROM service WHERE category_id = ? AND is_active = 1";
+
+    private static final String COUNT_PENDING_BY_HOST =
+            "SELECT COUNT(*) FROM service WHERE host_id = ? AND is_active = 0";
 
     private static final String RESOLVE_HOST =
             "SELECT MIN(id) FROM user";
@@ -78,6 +83,8 @@ public class ServiceDao {
                     s.setHostId(rs.getInt("host_id"));
                     s.setImageName(rs.getString("image_name"));
                     s.setCategoryId(rs.getObject("category_id", Integer.class));
+                    s.setLatitude(rs.getObject("latitude", Double.class));
+                    s.setLongitude(rs.getObject("longitude", Double.class));
                     list.add(s);
                 }
             }
@@ -109,6 +116,8 @@ public class ServiceDao {
             ps.setInt(9, s.getHostId());
             ps.setString(10, s.getImageName());
             ps.setObject(11, s.getCategoryId());
+            ps.setObject(12, s.getLatitude());
+            ps.setObject(13, s.getLongitude());
             ps.executeUpdate();
         }
     }
@@ -131,8 +140,10 @@ public class ServiceDao {
             ps.setInt(6, s.isActive() ? 1 : 0);
             ps.setTimestamp(7, Timestamp.valueOf(s.getUpdatedAt()));
             ps.setString(8, s.getImageName());
-            ps.setObject(9, s.getCategoryId()); // null-safe
-            ps.setInt(10, s.getId());
+            ps.setObject(9, s.getCategoryId());
+            ps.setObject(10, s.getLatitude());
+            ps.setObject(11, s.getLongitude());
+            ps.setInt(12, s.getId());
             ps.executeUpdate();
         }
     }
@@ -155,9 +166,50 @@ public class ServiceDao {
         }
     }
 
+    /**
+     * Sets is_active for all given ids in a single statement.
+     * No-op if the list is empty.
+     */
+    public void setActiveAll(List<Integer> ids, boolean active) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "UPDATE service SET is_active = ? WHERE id IN (" + placeholders + ")";
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, active ? 1 : 0);
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 2, ids.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Deletes all services with the given ids in a single statement.
+     * No-op if the list is empty.
+     */
+    public void deleteAll(List<Integer> ids) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "DELETE FROM service WHERE id IN (" + placeholders + ")";
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    /** Returns the count of pending (inactive) services owned by the given host. */
+    public int countPendingByHostId(int hostId) throws SQLException {
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(COUNT_PENDING_BY_HOST)) {
+            ps.setInt(1, hostId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
     /** Returns all base_price values for active services in the given category. */
-    public List<BigDecimal> getPricesByCategory(int categoryId) throws SQLException {
-        List<BigDecimal> prices = new ArrayList<>();
+    public List<BigDecimal> getPricesByCategory(int categoryId) throws SQLException {        List<BigDecimal> prices = new ArrayList<>();
         Connection conn = DbConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(PRICES_BY_CATEGORY)) {
             ps.setInt(1, categoryId);

@@ -1,7 +1,9 @@
 module tn.piapp {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.web;
     requires java.sql;
+    requires java.net.http;
     requires jbcrypt;
 
     opens tn.piapp.ui to javafx.fxml;
@@ -12,4 +14,5 @@ module tn.piapp {
     exports tn.piapp.dao;
     exports tn.piapp.db;
     exports tn.piapp.util;
+    exports tn.piapp.service;
 }

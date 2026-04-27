@@ -8,29 +8,31 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ToolDao {
 
     private static final String FIND_ALL =
             "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
-            "created_at, updated_at, host_id, image_name, category_id FROM tool";
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM tool";
 
     private static final String FIND_ALL_ACTIVE =
             "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
-            "created_at, updated_at, host_id, image_name, category_id FROM tool WHERE is_active = 1";
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM tool WHERE is_active = 1";
 
     private static final String FIND_BY_HOST =
             "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
-            "created_at, updated_at, host_id, image_name, category_id FROM tool WHERE host_id = ?";
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM tool WHERE host_id = ?";
 
     private static final String INSERT =
             "INSERT INTO tool (name, description, price_per_day, stock_quantity, location, " +
-            "is_active, created_at, updated_at, host_id, image_name, category_id) " +
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+            "is_active, created_at, updated_at, host_id, image_name, category_id, latitude, longitude) " +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String UPDATE =
             "UPDATE tool SET name=?, description=?, price_per_day=?, stock_quantity=?, " +
-            "location=?, is_active=?, updated_at=?, image_name=?, category_id=? WHERE id=?";
+            "location=?, is_active=?, updated_at=?, image_name=?, category_id=?, " +
+            "latitude=?, longitude=? WHERE id=?";
 
     private static final String DELETE =
             "DELETE FROM tool WHERE id=?";
@@ -40,6 +42,9 @@ public class ToolDao {
 
     private static final String PRICES_BY_CATEGORY =
             "SELECT price_per_day FROM tool WHERE category_id = ? AND is_active = 1";
+
+    private static final String COUNT_PENDING_BY_HOST =
+            "SELECT COUNT(*) FROM tool WHERE host_id = ? AND is_active = 0";
 
     private static final String RESOLVE_HOST =
             "SELECT MIN(id) FROM user";
@@ -78,6 +83,8 @@ public class ToolDao {
                     t.setHostId(rs.getInt("host_id"));
                     t.setImageName(rs.getString("image_name"));
                     t.setCategoryId(rs.getObject("category_id", Integer.class));
+                    t.setLatitude(rs.getObject("latitude", Double.class));
+                    t.setLongitude(rs.getObject("longitude", Double.class));
                     list.add(t);
                 }
             }
@@ -109,6 +116,8 @@ public class ToolDao {
             ps.setInt(9, t.getHostId());
             ps.setString(10, t.getImageName());
             ps.setObject(11, t.getCategoryId());
+            ps.setObject(12, t.getLatitude());
+            ps.setObject(13, t.getLongitude());
             ps.executeUpdate();
         }
     }
@@ -131,8 +140,10 @@ public class ToolDao {
             ps.setInt(6, t.isActive() ? 1 : 0);
             ps.setTimestamp(7, Timestamp.valueOf(t.getUpdatedAt()));
             ps.setString(8, t.getImageName());
-            ps.setObject(9, t.getCategoryId()); // null-safe
-            ps.setInt(10, t.getId());
+            ps.setObject(9, t.getCategoryId());
+            ps.setObject(10, t.getLatitude());
+            ps.setObject(11, t.getLongitude());
+            ps.setInt(12, t.getId());
             ps.executeUpdate();
         }
     }
@@ -152,6 +163,48 @@ public class ToolDao {
             ps.setInt(1, active ? 1 : 0);
             ps.setInt(2, id);
             ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Sets is_active for all given ids in a single statement.
+     * No-op if the list is empty.
+     */
+    public void setActiveAll(List<Integer> ids, boolean active) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "UPDATE tool SET is_active = ? WHERE id IN (" + placeholders + ")";
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, active ? 1 : 0);
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 2, ids.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Deletes all tools with the given ids in a single statement.
+     * No-op if the list is empty.
+     */
+    public void deleteAll(List<Integer> ids) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "DELETE FROM tool WHERE id IN (" + placeholders + ")";
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    /** Returns the count of pending (inactive) tools owned by the given host. */
+    public int countPendingByHostId(int hostId) throws SQLException {
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(COUNT_PENDING_BY_HOST)) {
+            ps.setInt(1, hostId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
         }
     }
 

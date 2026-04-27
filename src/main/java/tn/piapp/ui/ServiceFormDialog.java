@@ -5,7 +5,10 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import tn.piapp.dao.CategoryDao;
@@ -14,11 +17,18 @@ import tn.piapp.model.Category;
 import tn.piapp.model.Service;
 import tn.piapp.service.CategorySuggestionResult;
 import tn.piapp.service.CategorySuggestionService;
+import tn.piapp.service.GeocodingService;
 import tn.piapp.service.PriceSuggestionResult;
 import tn.piapp.service.PriceSuggestionService;
 import tn.piapp.util.Validation;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +47,16 @@ public class ServiceFormDialog {
     private final ComboBox<Category> cbCategory = new ComboBox<>();
     private final Label lblError             = new Label();
     private final Label lblPriceSuggestion   = new Label();
+
+    // Image picker
+    private final ImageView imgPreview = new ImageView();
+    private final Button    btnPickImage = new Button("Choose Image");
+    private File selectedImageFile = null;
+
+    // Geocoding
+    private final GeocodingService geocodingService = new GeocodingService();
+    private Double geocodedLat = null;
+    private Double geocodedLng = null;
 
     private final ServiceDao serviceDao = new ServiceDao();
     private final PriceSuggestionService priceSuggestionService = new PriceSuggestionService();
@@ -85,26 +105,110 @@ public class ServiceFormDialog {
             tfImageName.setText(existing.getImageName() != null ? existing.getImageName() : "");
         }
 
-        // Form grid
+        // Form grid — fixed column widths so labels are always visible
         GridPane grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(10);
         grid.setPadding(new Insets(16, 20, 8, 20));
+
+        // Column 0: label (fixed 110px), Column 1: field (fills remaining space)
+        ColumnConstraints col0 = new ColumnConstraints(110);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
+        col1.setFillWidth(true);
+        grid.getColumnConstraints().addAll(col0, col1);
 
         addRow(grid, 0, "Name",            tfName);
         addRow(grid, 1, "Description",     taDescription);
         addRow(grid, 2, "Base Price",      tfBasePrice);
         addRow(grid, 3, "Duration (min)",  tfDurationMinutes);
         addRow(grid, 4, "Location",        tfLocation);
-        addRow(grid, 5, "Image Name",      tfImageName);
+
+        // Verify location button + status label
+        Button btnVerifyLocation = new Button("Verify Location");
+        btnVerifyLocation.setStyle("-fx-background-color: #6C63FF; -fx-text-fill: white;" +
+                                   "-fx-font-size: 11px; -fx-background-radius: 12;" +
+                                   "-fx-cursor: hand; -fx-padding: 4 12 4 12;");
+        Label lblGeoStatus = new Label();
+        lblGeoStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #7f8c8d;");
+        HBox geoRow = new HBox(8, btnVerifyLocation, lblGeoStatus);
+        geoRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        grid.add(geoRow, 1, 5);
+
+        // Pre-fill coordinates if editing
+        if (existing != null && existing.getLatitude() != null) {
+            geocodedLat = existing.getLatitude();
+            geocodedLng = existing.getLongitude();
+            lblGeoStatus.setText(String.format("%.4f, %.4f", geocodedLat, geocodedLng));
+            lblGeoStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #27ae60;");
+        }
+
+        btnVerifyLocation.setOnAction(e -> {
+            String loc = tfLocation.getText().trim();
+            if (loc.isEmpty()) { lblGeoStatus.setText("Enter a location first."); return; }
+            lblGeoStatus.setText("Searching...");
+            lblGeoStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #7f8c8d;");
+            btnVerifyLocation.setDisable(true);
+            javafx.concurrent.Task<GeocodingService.LatLng> geoTask = new javafx.concurrent.Task<>() {
+                @Override protected GeocodingService.LatLng call() {
+                    return geocodingService.geocode(loc);
+                }
+            };
+            geoTask.setOnSucceeded(ev -> {
+                btnVerifyLocation.setDisable(false);
+                GeocodingService.LatLng result = geoTask.getValue();
+                if (result != null) {
+                    geocodedLat = result.lat();
+                    geocodedLng = result.lng();
+                    lblGeoStatus.setText(String.format("%.4f, %.4f", geocodedLat, geocodedLng));
+                    lblGeoStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #27ae60;");
+                } else {
+                    geocodedLat = null; geocodedLng = null;
+                    lblGeoStatus.setText("Location not found — will save without coordinates.");
+                    lblGeoStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #e74c3c;");
+                }
+            });
+            geoTask.setOnFailed(ev -> {
+                btnVerifyLocation.setDisable(false);
+                lblGeoStatus.setText("Geocoding failed.");
+                lblGeoStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #e74c3c;");
+            });
+            Thread gt = new Thread(geoTask); gt.setDaemon(true); gt.start();
+        });
+
         addRow(grid, 6, "Category",        cbCategory);
+
+        // Image picker row
+        imgPreview.setFitWidth(80);
+        imgPreview.setFitHeight(60);
+        imgPreview.setPreserveRatio(true);
+        imgPreview.setStyle("-fx-border-color: #e0e0e0; -fx-border-radius: 4;");
+        btnPickImage.getStyleClass().add("btn-refresh");
+        btnPickImage.setOnAction(e -> pickImage());
+
+        // Pre-load existing image if editing
+        if (existing != null && existing.getImageName() != null && !existing.getImageName().isBlank()) {
+            tfImageName.setText(existing.getImageName());
+            loadPreview(existing.getImageName());
+        }
+
+        HBox imageRow = new HBox(8, btnPickImage, imgPreview, tfImageName);
+        imageRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        tfImageName.setEditable(false);
+        tfImageName.setPrefWidth(140);
+        tfImageName.getStyleClass().add("dialog-text-field");
+        Label imgLabel = new Label("Image");
+        imgLabel.setMinWidth(110);
+        imgLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #7f8c8d;");
+        grid.add(imgLabel, 0, 7);
+        grid.add(imageRow, 1, 7);
 
         // Price suggestion label (below category row)
         lblPriceSuggestion.getStyleClass().add("price-suggestion-label");
         lblPriceSuggestion.setVisible(false);
         lblPriceSuggestion.setManaged(false);
         lblPriceSuggestion.setWrapText(true);
-        grid.add(lblPriceSuggestion, 1, 7);
+        grid.add(lblPriceSuggestion, 1, 9);
 
         // Wire price suggestion on category selection
         cbCategory.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -159,7 +263,7 @@ public class ServiceFormDialog {
 
         HBox suggestionRow = new HBox(6, lblCategorySuggestion, btnApplySuggestion);
         suggestionRow.setStyle("-fx-alignment: center-left;");
-        grid.add(suggestionRow, 1, 8);
+        grid.add(suggestionRow, 1, 10);
 
         // Wire category suggestion on name/description typing
         javafx.beans.value.ChangeListener<String> suggestionListener = (obs, o, n) -> {
@@ -207,9 +311,40 @@ public class ServiceFormDialog {
         VBox root = new VBox(strip, title, grid, lblError, btnRow);
         root.getStyleClass().add("dialog-root");
 
-        Scene scene = new Scene(root, 440, 460);
+        Scene scene = new Scene(root, 520, 620);
         scene.getStylesheets().add(css);
         stage.setScene(scene);
+    }
+
+    private void pickImage() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Select Image");
+        chooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp"));
+        File file = chooser.showOpenDialog(stage);
+        if (file != null) {
+            selectedImageFile = file;
+            tfImageName.setText(file.getName());
+            imgPreview.setImage(new Image(file.toURI().toString(), 80, 60, true, true));
+        }
+    }
+
+    private void loadPreview(String imageName) {
+        // Try to load from the images resources folder
+        try {
+            var url = getClass().getResource("/images/" + imageName);
+            if (url != null) {
+                imgPreview.setImage(new Image(url.toExternalForm(), 80, 60, true, true));
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private String copyImageToResources(File src) throws IOException {
+        Path imagesDir = Paths.get("src/main/resources/images");
+        Files.createDirectories(imagesDir);
+        Path dest = imagesDir.resolve(src.getName());
+        Files.copy(src.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
+        return src.getName();
     }
 
     private void loadCategories(Service existing) {
@@ -235,9 +370,12 @@ public class ServiceFormDialog {
     private void addRow(GridPane grid, int row, String labelText, Control field) {
         Label lbl = new Label(labelText);
         lbl.getStyleClass().add("dialog-field-label");
+        lbl.setMinWidth(110);
+        lbl.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #7f8c8d;");
         grid.add(lbl, 0, row);
         grid.add(field, 1, row);
         GridPane.setHgrow(field, Priority.ALWAYS);
+        GridPane.setFillWidth(field, true);
     }
 
     private void onSave(Service existing) {
@@ -277,6 +415,21 @@ public class ServiceFormDialog {
             showError(error);
             return;
         }
+
+        // Copy selected image file to resources/images/
+        if (selectedImageFile != null) {
+            try {
+                String savedName = copyImageToResources(selectedImageFile);
+                s.setImageName(savedName);
+            } catch (IOException e) {
+                showError("Could not save image: " + e.getMessage());
+                return;
+            }
+        }
+
+        // Store geocoded coordinates
+        s.setLatitude(geocodedLat);
+        s.setLongitude(geocodedLng);
 
         result = s;
         stage.close();

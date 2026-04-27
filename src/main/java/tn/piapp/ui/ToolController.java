@@ -9,6 +9,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.stage.FileChooser;
 import tn.piapp.dao.CategoryDao;
 import tn.piapp.dao.ToolDao;
 import tn.piapp.model.Category;
@@ -18,6 +19,9 @@ import tn.piapp.service.QualityScoreResult;
 import tn.piapp.service.QualityScoreService;
 import tn.piapp.util.Alerts;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalTime;
@@ -25,6 +29,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ToolController {
 
@@ -46,6 +51,18 @@ public class ToolController {
     @FXML private ProgressIndicator progressIndicator;
     @FXML private Label             lblStatus;
     @FXML private TextField         tfSearch;
+
+    // ── Pending banner ─────────────────────────────────────────────────────────
+    @FXML private HBox  pendingBanner;
+    @FXML private Label lblPendingCount;
+
+    // ── Bulk toolbar (admin only) ──────────────────────────────────────────────
+    @FXML private HBox   bulkToolbar;
+    @FXML private Label  lblSelectionCount;
+    @FXML private Button btnBulkApprove;
+    @FXML private Button btnBulkHide;
+    @FXML private Button btnBulkDelete;
+    @FXML private Button btnExportCsv;
 
     // ── Filter bar ─────────────────────────────────────────────────────────────
     @FXML private RadioButton           rbAll;
@@ -163,6 +180,9 @@ public class ToolController {
         this.currentUser = user;
         applyRoleRestrictions();
         loadData();
+        if ("ROLE_HOST".equals(user.getRole())) {
+            refreshPendingBanner();
+        }
     }
 
     // ── Role-based UI setup ────────────────────────────────────────────────────
@@ -174,6 +194,14 @@ public class ToolController {
             case "ROLE_ADMIN" -> {
                 addActionsColumn();
                 addQualityColumn();
+                tableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+                bulkToolbar.setVisible(true);
+                bulkToolbar.setManaged(true);
+                tableView.getSelectionModel().getSelectedItems().addListener(
+                    (javafx.collections.ListChangeListener<Tool>) c -> {
+                        int n = tableView.getSelectionModel().getSelectedItems().size();
+                        lblSelectionCount.setText(n + " selected");
+                    });
             }
             case "ROLE_HOST" -> {
                 addQualityColumn();
@@ -386,6 +414,97 @@ public class ToolController {
         alert.showAndWait();
     }
 
+    // ── Bulk operations (admin only) ───────────────────────────────────────────
+    @FXML private void onBulkApprove() {
+        List<Integer> ids = getSelectedIds();
+        if (ids.isEmpty()) { Alerts.showError("No Selection", "Select at least one tool."); return; }
+        try { dao.setActiveAll(ids, true); loadData(); }
+        catch (SQLException e) { Alerts.showError("Bulk Approve Error", e.getMessage()); }
+    }
+
+    @FXML private void onBulkHide() {
+        List<Integer> ids = getSelectedIds();
+        if (ids.isEmpty()) { Alerts.showError("No Selection", "Select at least one tool."); return; }
+        try { dao.setActiveAll(ids, false); loadData(); }
+        catch (SQLException e) { Alerts.showError("Bulk Hide Error", e.getMessage()); }
+    }
+
+    @FXML private void onBulkDelete() {
+        List<Integer> ids = getSelectedIds();
+        if (ids.isEmpty()) { Alerts.showError("No Selection", "Select at least one tool."); return; }
+        boolean confirmed = Alerts.showConfirmation("Bulk Delete",
+            "Delete " + ids.size() + " tool(s)? This cannot be undone.");
+        if (!confirmed) return;
+        try { dao.deleteAll(ids); loadData(); }
+        catch (SQLException e) { Alerts.showError("Bulk Delete Error", e.getMessage()); }
+    }
+
+    @FXML private void onExportCsv() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Export Tools as CSV");
+        chooser.setInitialFileName("tools_export.csv");
+        chooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File file = chooser.showSaveDialog(tableView.getScene().getWindow());
+        if (file == null) return;
+
+        try (FileWriter fw = new FileWriter(file)) {
+            fw.write("ID,Name,Description,Price/Day,Stock,Location,Status,Host ID,Category ID\n");
+            for (Tool t : sortedList) {
+                fw.write(String.join(",",
+                    String.valueOf(t.getId()),
+                    csvEscape(t.getName()),
+                    csvEscape(t.getDescription()),
+                    t.getPricePerDay() != null ? t.getPricePerDay().toPlainString() : "",
+                    String.valueOf(t.getStockQuantity()),
+                    csvEscape(t.getLocation()),
+                    t.isActive() ? "Active" : "Pending",
+                    String.valueOf(t.getHostId()),
+                    t.getCategoryId() != null ? String.valueOf(t.getCategoryId()) : ""
+                ) + "\n");
+            }
+            lblStatus.setText("✅ Exported " + sortedList.size() + " tools to " + file.getName());
+        } catch (IOException e) {
+            Alerts.showError("Export Error", e.getMessage());
+        }
+    }
+
+    private List<Integer> getSelectedIds() {
+        return tableView.getSelectionModel().getSelectedItems()
+            .stream().map(Tool::getId).collect(Collectors.toList());
+    }
+
+    private String csvEscape(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
+    // ── Pending banner ─────────────────────────────────────────────────────────
+    private void refreshPendingBanner() {
+        javafx.concurrent.Task<Integer> task = new javafx.concurrent.Task<>() {
+            @Override protected Integer call() throws Exception {
+                return dao.countPendingByHostId(currentUser.getId());
+            }
+        };
+        task.setOnSucceeded(e -> {
+            int count = task.getValue();
+            if (count > 0) {
+                lblPendingCount.setText(count + " tool" + (count > 1 ? "s" : "") + " pending");
+                pendingBanner.setVisible(true);
+                pendingBanner.setManaged(true);
+            } else {
+                pendingBanner.setVisible(false);
+                pendingBanner.setManaged(false);
+            }
+        });
+        Thread t = new Thread(task);
+        t.setDaemon(true);
+        t.start();
+    }
+
     // ── FXML handlers ──────────────────────────────────────────────────────────
     @FXML private void onAdd() {
         ToolFormDialog dialog = new ToolFormDialog(null);
@@ -396,6 +515,9 @@ public class ToolController {
                 boolean autoApprove = currentUser != null && currentUser.getRole().equals("ROLE_ADMIN");
                 dao.insert(tool, autoApprove);
                 loadData();
+                if (currentUser != null && "ROLE_HOST".equals(currentUser.getRole())) {
+                    refreshPendingBanner();
+                }
             }
             catch (SQLException e) { Alerts.showError("Insert Error", e.getMessage()); }
         });

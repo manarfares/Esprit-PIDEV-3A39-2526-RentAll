@@ -9,6 +9,58 @@
       fx:controller="tn.piapp.ui.ServiceController"
       spacing="0" style="-fx-background-color: #F6F7FB;">
 
+    <!-- Pending approval banner (visible for hosts with pending listings) -->
+    <HBox fx:id="pendingBanner" spacing="10" alignment="CENTER_LEFT"
+          visible="false" managed="false"
+          style="-fx-background-color: #fff8e1;
+                 -fx-padding: 8 20 8 20;
+                 -fx-border-color: #f39c12;
+                 -fx-border-width: 0 0 1 0;">
+        <Label text="⏳" style="-fx-font-size: 14px;"/>
+        <Label fx:id="lblPendingCount"
+               style="-fx-font-size: 12px; -fx-text-fill: #e67e22; -fx-font-weight: bold;"/>
+        <Label text="— awaiting admin approval. You'll see them here once approved."
+               style="-fx-font-size: 12px; -fx-text-fill: #e67e22;"/>
+    </HBox>
+
+    <!-- Bulk action toolbar (admin only, hidden by default) -->
+    <HBox fx:id="bulkToolbar" spacing="8" alignment="CENTER_LEFT"
+          visible="false" managed="false"
+          style="-fx-background-color: #f0eeff;
+                 -fx-padding: 8 20 8 20;
+                 -fx-border-color: #d0c8ff;
+                 -fx-border-width: 0 0 1 0;">
+        <Label fx:id="lblSelectionCount"
+               text="0 selected"
+               style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #6C63FF;"/>
+        <Separator orientation="VERTICAL" style="-fx-padding: 0 4 0 4;"/>
+        <Button fx:id="btnBulkApprove" text="Approve Selected"
+                onAction="#onBulkApprove"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+        <Button fx:id="btnBulkHide" text="Hide Selected"
+                onAction="#onBulkHide"
+                style="-fx-background-color: #e67e22; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+        <Button fx:id="btnBulkDelete" text="Delete Selected"
+                onAction="#onBulkDelete"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnExportCsv" text="Export CSV"
+                onAction="#onExportCsv"
+                style="-fx-background-color: #2c3e50; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+    </HBox>
+
     <!-- Toolbar row -->
     <HBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding: 16 20 12 20;">
         <Button fx:id="btnAdd" text="+ Add Service" styleClass="btn-add" onAction="#onAdd"/>

@@ -32,6 +32,13 @@
             <Label text="All" styleClass="brand-name-accent"/>
         </HBox>
 
+        <!-- Separator -->
+        <Separator orientation="VERTICAL" style="-fx-padding: 0 4 0 4;"/>
+
+        <!-- Context label: "My Listings — bilel" or "Admin Panel" -->
+        <Label fx:id="lblContext"
+               style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #6C63FF;"/>
+
         <!-- Spacer -->
         <Region HBox.hgrow="ALWAYS"/>
 

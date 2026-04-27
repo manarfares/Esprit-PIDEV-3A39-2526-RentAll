@@ -232,6 +232,24 @@ public class AdminController {
         filtrerUsers();
     }
 
+    // ── Categories ─────────────────────────────
+    @FXML
+    public void handleManageCategories() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/tn/piapp/ui/category_admin.fxml"));
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle("🗂️ Manage Categories");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.show();
+        } catch (Exception e) {
+            showMessage("❌ Erreur : " + e.getMessage(), false);
+            e.printStackTrace();
+        }
+    }
+
     // ── Tools & Services ───────────────────────
     @FXML
     public void handleOpenToolsServices() {
