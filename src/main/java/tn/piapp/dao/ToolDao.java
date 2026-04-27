@@ -235,4 +235,58 @@ public class ToolDao {
             return rs.getInt(1);
         }
     }
+
+    /**
+     * Returns up to {@code limit} active tools similar to the given one.
+     * Scored by: same category (+3), same location (+2), similar price ±30% (+1).
+     */
+    public List<Tool> findSimilar(int currentId, Integer categoryId,
+                                  String location, BigDecimal price,
+                                  int limit) throws SQLException {
+        String sql =
+            "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude, (" +
+            "  CASE WHEN category_id = ? THEN 3 ELSE 0 END + " +
+            "  CASE WHEN location = ? THEN 2 ELSE 0 END + " +
+            "  CASE WHEN ? > 0 AND ABS(price_per_day - ?) / ? < 0.3 THEN 1 ELSE 0 END" +
+            ") AS score " +
+            "FROM tool " +
+            "WHERE id != ? AND is_active = 1 " +
+            "ORDER BY score DESC, RAND() " +
+            "LIMIT ?";
+
+        List<Tool> list = new ArrayList<>();
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            double p = price != null ? price.doubleValue() : 0.0;
+            ps.setObject(1, categoryId);
+            ps.setString(2, location);
+            ps.setDouble(3, p);
+            ps.setDouble(4, p);
+            ps.setDouble(5, p);
+            ps.setInt(6, currentId);
+            ps.setInt(7, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Tool t = new Tool();
+                    t.setId(rs.getInt("id"));
+                    t.setName(rs.getString("name"));
+                    t.setDescription(rs.getString("description"));
+                    t.setPricePerDay(rs.getBigDecimal("price_per_day"));
+                    t.setStockQuantity(rs.getInt("stock_quantity"));
+                    t.setLocation(rs.getString("location"));
+                    t.setActive(rs.getInt("is_active") != 0);
+                    t.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    t.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    t.setHostId(rs.getInt("host_id"));
+                    t.setImageName(rs.getString("image_name"));
+                    t.setCategoryId(rs.getObject("category_id", Integer.class));
+                    t.setLatitude(rs.getObject("latitude", Double.class));
+                    t.setLongitude(rs.getObject("longitude", Double.class));
+                    list.add(t);
+                }
+            }
+        }
+        return list;
+    }
 }

@@ -198,8 +198,7 @@ public class ServiceDao {
     }
 
     /** Returns the count of pending (inactive) services owned by the given host. */
-    public int countPendingByHostId(int hostId) throws SQLException {
-        Connection conn = DbConnection.getInstance().getConnection();
+    public int countPendingByHostId(int hostId) throws SQLException {        Connection conn = DbConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(COUNT_PENDING_BY_HOST)) {
             ps.setInt(1, hostId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -209,7 +208,8 @@ public class ServiceDao {
     }
 
     /** Returns all base_price values for active services in the given category. */
-    public List<BigDecimal> getPricesByCategory(int categoryId) throws SQLException {        List<BigDecimal> prices = new ArrayList<>();
+    public List<BigDecimal> getPricesByCategory(int categoryId) throws SQLException {
+        List<BigDecimal> prices = new ArrayList<>();
         Connection conn = DbConnection.getInstance().getConnection();
         try (PreparedStatement ps = conn.prepareStatement(PRICES_BY_CATEGORY)) {
             ps.setInt(1, categoryId);
@@ -220,6 +220,61 @@ public class ServiceDao {
             }
         }
         return prices;
+    }
+
+    /**
+     * Returns up to {@code limit} active services similar to the given one.
+     * Scored by: same category (+3), same location (+2), similar price ±30% (+1).
+     * Same-type only — no tools mixed in.
+     */
+    public List<Service> findSimilar(int currentId, Integer categoryId,
+                                     String location, BigDecimal price,
+                                     int limit) throws SQLException {
+        String sql =
+            "SELECT id, name, description, base_price, duration_minutes, location, is_active, " +
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude, (" +
+            "  CASE WHEN category_id = ? THEN 3 ELSE 0 END + " +
+            "  CASE WHEN location = ? THEN 2 ELSE 0 END + " +
+            "  CASE WHEN ? > 0 AND ABS(base_price - ?) / ? < 0.3 THEN 1 ELSE 0 END" +
+            ") AS score " +
+            "FROM service " +
+            "WHERE id != ? AND is_active = 1 " +
+            "ORDER BY score DESC, RAND() " +
+            "LIMIT ?";
+
+        List<Service> list = new ArrayList<>();
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            double p = price != null ? price.doubleValue() : 0.0;
+            ps.setObject(1, categoryId);   // category_id match
+            ps.setString(2, location);     // location match
+            ps.setDouble(3, p);            // price guard: ? > 0
+            ps.setDouble(4, p);            // ABS(base_price - ?)
+            ps.setDouble(5, p);            // / ?
+            ps.setInt(6, currentId);       // exclude current
+            ps.setInt(7, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Service s = new Service();
+                    s.setId(rs.getInt("id"));
+                    s.setName(rs.getString("name"));
+                    s.setDescription(rs.getString("description"));
+                    s.setBasePrice(rs.getBigDecimal("base_price"));
+                    s.setDurationMinutes(rs.getInt("duration_minutes"));
+                    s.setLocation(rs.getString("location"));
+                    s.setActive(rs.getInt("is_active") != 0);
+                    s.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    s.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    s.setHostId(rs.getInt("host_id"));
+                    s.setImageName(rs.getString("image_name"));
+                    s.setCategoryId(rs.getObject("category_id", Integer.class));
+                    s.setLatitude(rs.getObject("latitude", Double.class));
+                    s.setLongitude(rs.getObject("longitude", Double.class));
+                    list.add(s);
+                }
+            }
+        }
+        return list;
     }
 
     public int resolveDefaultHostId() throws SQLException {

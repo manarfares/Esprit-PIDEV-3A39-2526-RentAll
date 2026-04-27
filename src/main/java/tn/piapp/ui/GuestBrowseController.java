@@ -342,17 +342,17 @@ public class GuestBrowseController {
 
         VBox root = buildDetailRoot(
             s.getImageName(), gradient, emoji,
-            s.getName(),
-            "Service",
-            s.getDescription(),
+            s.getName(), "Service", s.getDescription(),
             s.getBasePrice() != null ? s.getBasePrice().toPlainString() + " DT / séance" : "—",
             s.getLocation(),
             s.getDurationMinutes() > 0 ? "⏱ " + s.getDurationMinutes() + " min" : null,
-            null,
-            popup
+            null, popup
         );
 
-        popup.setScene(new Scene(root, 460, 580));
+        // ── Similar services section ──
+        addSimilarServices(root, s, popup);
+
+        popup.setScene(new Scene(root, 460, 620));
         popup.show();
     }
 
@@ -364,18 +364,167 @@ public class GuestBrowseController {
 
         VBox root = buildDetailRoot(
             t.getImageName(), gradient, emoji,
-            t.getName(),
-            "Outil",
-            t.getDescription(),
+            t.getName(), "Outil", t.getDescription(),
             t.getPricePerDay() != null ? t.getPricePerDay().toPlainString() + " DT / jour" : "—",
-            t.getLocation(),
-            null,
-            "📦 Stock : " + t.getStockQuantity(),
-            popup
+            t.getLocation(), null,
+            "📦 Stock : " + t.getStockQuantity(), popup
         );
 
-        popup.setScene(new Scene(root, 460, 580));
+        // ── Similar tools section ──
+        addSimilarTools(root, t, popup);
+
+        popup.setScene(new Scene(root, 460, 620));
         popup.show();
+    }
+
+    // ── Similar listings ───────────────────────────────────────────────────────
+    private void addSimilarServices(VBox popupRoot, Service current, Stage popup) {
+        // Find the ScrollPane → its content VBox
+        ScrollPane scroll = (ScrollPane) popupRoot.getChildren().stream()
+            .filter(n -> n instanceof ScrollPane).findFirst().orElse(null);
+        if (scroll == null) return;
+        VBox content = (VBox) scroll.getContent();
+
+        Task<java.util.List<Service>> task = new Task<>() {
+            @Override protected java.util.List<Service> call() throws Exception {
+                return serviceDao.findSimilar(
+                    current.getId(), current.getCategoryId(),
+                    current.getLocation(), current.getBasePrice(), 3);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            java.util.List<Service> similar = task.getValue();
+            if (similar.isEmpty()) return;
+            javafx.application.Platform.runLater(() -> {
+                VBox section = buildSimilarSection();
+                HBox row = (HBox) section.getChildren().get(2);
+                for (int i = 0; i < similar.size(); i++) {
+                    Service s = similar.get(i);
+                    row.getChildren().add(buildMiniServiceCard(s, i, popup));
+                }
+                content.getChildren().add(section);
+            });
+        });
+        Thread t = new Thread(task); t.setDaemon(true); t.start();
+    }
+
+    private void addSimilarTools(VBox popupRoot, Tool current, Stage popup) {
+        ScrollPane scroll = (ScrollPane) popupRoot.getChildren().stream()
+            .filter(n -> n instanceof ScrollPane).findFirst().orElse(null);
+        if (scroll == null) return;
+        VBox content = (VBox) scroll.getContent();
+
+        Task<java.util.List<Tool>> task = new Task<>() {
+            @Override protected java.util.List<Tool> call() throws Exception {
+                return toolDao.findSimilar(
+                    current.getId(), current.getCategoryId(),
+                    current.getLocation(), current.getPricePerDay(), 3);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            java.util.List<Tool> similar = task.getValue();
+            if (similar.isEmpty()) return;
+            javafx.application.Platform.runLater(() -> {
+                VBox section = buildSimilarSection();
+                HBox row = (HBox) section.getChildren().get(2);
+                for (int i = 0; i < similar.size(); i++) {
+                    Tool t2 = similar.get(i);
+                    row.getChildren().add(buildMiniToolCard(t2, i, popup));
+                }
+                content.getChildren().add(section);
+            });
+        });
+        Thread t = new Thread(task); t.setDaemon(true); t.start();
+    }
+
+    /** Builds the "You might also like" container. */
+    private VBox buildSimilarSection() {
+        Separator sep = new Separator();
+
+        Label title = new Label("You might also like");
+        title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #7f8c8d;" +
+                       "-fx-padding: 8 0 6 0;");
+
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        VBox section = new VBox(6, sep, title, row);
+        section.setPadding(new Insets(8, 0, 12, 0));
+        return section;
+    }
+
+    /** Mini card for a similar service — compact version of the full card. */
+    private VBox buildMiniServiceCard(Service s, int index, Stage parentPopup) {
+        String gradient = SERVICE_GRADIENTS[index % SERVICE_GRADIENTS.length];
+        String emoji    = SERVICE_EMOJIS[index % SERVICE_EMOJIS.length];
+        return buildMiniCard(
+            s.getImageName(), gradient, emoji,
+            s.getName(),
+            s.getBasePrice() != null ? s.getBasePrice().toPlainString() + " DT" : "—",
+            () -> {
+                parentPopup.close();
+                showServiceDetail(s, gradient, emoji);
+            });
+    }
+
+    /** Mini card for a similar tool. */
+    private VBox buildMiniToolCard(Tool t, int index, Stage parentPopup) {
+        String gradient = TOOL_GRADIENTS[index % TOOL_GRADIENTS.length];
+        String emoji    = TOOL_EMOJIS[index % TOOL_EMOJIS.length];
+        return buildMiniCard(
+            t.getImageName(), gradient, emoji,
+            t.getName(),
+            t.getPricePerDay() != null ? t.getPricePerDay().toPlainString() + " DT" : "—",
+            () -> {
+                parentPopup.close();
+                showToolDetail(t, gradient, emoji);
+            });
+    }
+
+    private VBox buildMiniCard(String imageName, String gradient, String emoji,
+                                String name, String price, Runnable onClick) {
+        VBox card = new VBox(0);
+        card.setPrefWidth(120);
+        card.setStyle("-fx-background-color: white; -fx-background-radius: 8;" +
+                      "-fx-border-radius: 8; -fx-cursor: hand;" +
+                      "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 1);");
+
+        // Mini image area
+        StackPane imgPane = new StackPane();
+        imgPane.setPrefHeight(70);
+        imgPane.setStyle("-fx-background-color: " + gradient + "; -fx-background-radius: 8 8 0 0;");
+
+        Image img = loadImage(imageName);
+        if (img != null) {
+            ImageView iv = new ImageView(img);
+            iv.setFitWidth(120); iv.setFitHeight(70);
+            iv.setPreserveRatio(false); iv.setSmooth(true);
+            imgPane.getChildren().add(iv);
+        } else {
+            Label el = new Label(emoji);
+            el.setStyle("-fx-font-size: 24px;");
+            imgPane.getChildren().add(el);
+        }
+
+        // Mini info
+        VBox info = new VBox(2);
+        info.setPadding(new Insets(6, 8, 8, 8));
+        Label lName = new Label(name != null ? name : "—");
+        lName.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+        lName.setWrapText(true); lName.setMaxWidth(104);
+        Label lPrice = new Label(price);
+        lPrice.setStyle("-fx-font-size: 11px; -fx-text-fill: #6C63FF; -fx-font-weight: bold;");
+        info.getChildren().addAll(lName, lPrice);
+
+        card.getChildren().addAll(imgPane, info);
+        card.setOnMouseClicked(e -> onClick.run());
+        card.setOnMouseEntered(e -> card.setStyle(
+            "-fx-background-color: white; -fx-background-radius: 8; -fx-border-radius: 8;" +
+            "-fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(108,99,255,0.2), 10, 0, 0, 2);"));
+        card.setOnMouseExited(e -> card.setStyle(
+            "-fx-background-color: white; -fx-background-radius: 8; -fx-border-radius: 8;" +
+            "-fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 1);"));
+        return card;
     }
 
     /**

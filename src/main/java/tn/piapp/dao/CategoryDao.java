@@ -16,7 +16,7 @@ public class CategoryDao {
             "SELECT id, name, type FROM category WHERE type = ? ORDER BY name";
 
     private static final String INSERT =
-            "INSERT INTO category (name, type) VALUES (?, ?)";
+            "INSERT INTO category (name, type, created_at) VALUES (?, ?, NOW())";
 
     private static final String UPDATE =
             "UPDATE category SET name = ?, type = ? WHERE id = ?";
