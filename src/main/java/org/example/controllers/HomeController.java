@@ -1,5 +1,6 @@
 package org.example.controllers;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -10,6 +11,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.models.User;
 import org.example.services.ServiceUser;
+import org.example.utils.IdleSessionManager;
 
 public class HomeController {
 
@@ -56,6 +58,15 @@ public class HomeController {
                                 "-fx-font-size: 11px; -fx-font-weight: bold;");
                 break;
         }
+
+        // Active la déconnexion automatique après inactivité
+        // (le scene n'est pas encore attaché à ce stade → différé)
+        Platform.runLater(() -> {
+            Scene scene = btnProfil.getScene();
+            if (scene != null) {
+                IdleSessionManager.attachToScene(scene, user);
+            }
+        });
     }
 
     @FXML
@@ -94,6 +105,7 @@ public class HomeController {
     // ── Déconnexion ────────────────────────────
     @FXML
     public void handleLogout() {
+        IdleSessionManager.detachCurrent();
         service.logout(currentUser.getId());
         currentUser.logout();
         try {

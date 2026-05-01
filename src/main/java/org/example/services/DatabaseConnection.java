@@ -6,8 +6,8 @@ import java.sql.SQLException;
 
 public class DatabaseConnection {
 
-    private static final String URL      = "jdbc:mysql://localhost:3306/gestionusers";
-    private static final String USER     = "root";
+    private static final String URL = "jdbc:mysql://localhost:3306/pidev_amine?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    private static final String USER = "root";
     private static final String PASSWORD = "";
 
     private static Connection connection = null;
@@ -16,7 +16,7 @@ public class DatabaseConnection {
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("✅ Connexion établie.");
+            System.out.println("Connexion etablie.");
         }
         return connection;
     }
@@ -26,11 +26,12 @@ public class DatabaseConnection {
         try {
             if (connection == null || connection.isClosed()) {
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("✅ Connexion établie.");
+                System.out.println("Connexion etablie.");
             }
+            return connection;
         } catch (SQLException e) {
-            System.out.println("❌ Erreur connexion : " + e.getMessage());
+            System.err.println("Erreur connexion base: " + e.getMessage());
+            return null;
         }
-        return connection;
     }
 }

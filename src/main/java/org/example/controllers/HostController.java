@@ -1,24 +1,22 @@
 package org.example.controllers;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.models.User;
 import org.example.services.ServiceUser;
+import org.example.utils.IdleSessionManager;
 
 public class HostController {
 
-    @FXML private Label         lblWelcome;
-    @FXML private Label         lblRole;
-    @FXML private Label         lblStatus;
-    @FXML private TextField     tfUsername;
-    @FXML private TextField     tfEmail;
-    @FXML private TextField     tfPhone;
-    @FXML private PasswordField pfPassword;
-    @FXML private Label         lblMessage;
+    @FXML private Label lblWelcome;
+    @FXML private Label lblRole;
+    @FXML private Label lblStatus;
 
     private ServiceUser service     = new ServiceUser();
     private User        currentUser;
@@ -28,9 +26,6 @@ public class HostController {
 
         lblWelcome.setText("🏠 Bienvenue, " + user.getUsername());
         lblStatus.setText("Statut : " + user.getStatus());
-        tfUsername.setText(user.getUsername());
-        tfEmail.setText(user.getEmail());
-        tfPhone.setText(user.getPhone() != null ? user.getPhone() : "");
 
         // Badge vérifié / non vérifié
         if (user.getRole().equals("ROLE_HOST_PENDING")) {
@@ -48,58 +43,43 @@ public class HostController {
                             "-fx-padding: 3 10 3 10; -fx-background-radius: 10;"
             );
         }
-    }
 
-    private boolean tokenValide() {
-        if (!service.verifierToken(currentUser.getId(),
-                currentUser.getSessionToken())) {
-            showMessage("❌ Session expirée. Reconnectez-vous.", false);
-            return false;
-        }
-        return true;
-    }
-
-    @FXML
-    public void handleUpdate() {
-        if (!tokenValide()) return;
-
-        String username = tfUsername.getText().trim();
-        String email    = tfEmail.getText().trim();
-        String phone    = tfPhone.getText().trim();
-        String password = pfPassword.getText().trim();
-
-        if (username.isEmpty() || email.isEmpty()) {
-            showMessage("⚠️ Username et Email sont obligatoires.", false);
-            return;
-        }
-
-        currentUser.setUsername(username);
-        currentUser.setEmail(email);
-        currentUser.setPhone(phone.isEmpty() ? null : phone);
-
-        if (!password.isEmpty()) {
-            if (password.length() < 6) {
-                showMessage("⚠️ Mot de passe trop court (min 6).", false);
-                return;
+        // Active la déconnexion automatique sur cette scene
+        Platform.runLater(() -> {
+            Scene scene = lblWelcome.getScene();
+            if (scene != null) {
+                IdleSessionManager.attachToScene(scene, user);
             }
-            currentUser.setPassword(password);
-        }
+        });
+    }
 
-        service.modifier(currentUser);
-        showMessage("✅ Profil mis à jour !", true);
-        lblWelcome.setText("🏠 Bienvenue, " + currentUser.getUsername());
+    // ── Ouvrir fenêtre Modifier ────────────────
+    @FXML
+    public void handleOuvrirModifier() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/edit_profil.fxml"));
+            Parent root = loader.load();
+            EditUserController ctrl = loader.getController();
+            ctrl.initProfil(service, currentUser);
+            Stage stage = new Stage();
+            stage.setTitle("✏️ Modifier mon profil");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML
     public void handleGererAnnonces() {
-        if (!tokenValide()) return;
-        showMessage("📋 Gestion des annonces — bientôt disponible !", true);
+        System.out.println("📋 Gestion des annonces — bientôt disponible !");
     }
 
     @FXML
     public void handleVoirReservations() {
-        if (!tokenValide()) return;
-        showMessage("📅 Réservations — bientôt disponible !", true);
+        System.out.println("📅 Réservations — bientôt disponible !");
     }
 
     // ── Retour Accueil ─────────────────────────
@@ -123,6 +103,7 @@ public class HostController {
     // ── Déconnexion ────────────────────────────
     @FXML
     public void handleLogout() {
+        IdleSessionManager.detachCurrent();
         service.logout(currentUser.getId());
         currentUser.logout();
         try {
@@ -134,12 +115,5 @@ public class HostController {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void showMessage(String msg, boolean success) {
-        lblMessage.setStyle(success
-                ? "-fx-text-fill: #27ae60; -fx-font-size: 12px;"
-                : "-fx-text-fill: #e74c3c; -fx-font-size: 12px;");
-        lblMessage.setText(msg);
     }
 }

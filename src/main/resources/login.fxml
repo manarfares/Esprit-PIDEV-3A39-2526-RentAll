@@ -89,12 +89,41 @@
                        -fx-pref-height: 44px; -fx-background-radius: 22;
                        -fx-cursor: hand;"/>
 
+        <!-- Mot de passe oublié -->
+        <HBox alignment="CENTER_RIGHT">
+            <Button text="Mot de passe oublié ?"
+                    onAction="#handleGoForgotPassword"
+                    style="-fx-background-color: transparent;
+                           -fx-text-fill: #6C63FF; -fx-font-size: 11px;
+                           -fx-cursor: hand; -fx-underline: true;
+                           -fx-border-color: transparent;"/>
+        </HBox>
+
         <!-- Séparateur -->
         <HBox alignment="CENTER" spacing="10">
             <Separator prefWidth="140"/>
             <Label text="ou" style="-fx-text-fill: #95a5a6; -fx-font-size: 11px;"/>
             <Separator prefWidth="140"/>
         </HBox>
+
+        <!-- ═══════════ BOUTON OAUTH GOOGLE ═══════════ -->
+        <Button text="🔵  Se connecter avec Google"
+                onAction="#handleGoogleLogin"
+                style="-fx-background-color: white;
+                       -fx-text-fill: #2c3e50; -fx-font-size: 13px;
+                       -fx-font-weight: bold; -fx-pref-width: 350px;
+                       -fx-pref-height: 42px; -fx-background-radius: 22;
+                       -fx-border-color: #dadce0; -fx-border-radius: 22;
+                       -fx-border-width: 1; -fx-cursor: hand;"/>
+
+        <!-- ═══════════ BOUTON RECONNAISSANCE FACIALE ═══════════ -->
+        <Button text="🎭  Se connecter avec mon visage"
+                onAction="#handleFaceLogin"
+                style="-fx-background-color: linear-gradient(to right, #16a085, #1abc9c);
+                       -fx-text-fill: white; -fx-font-size: 13px;
+                       -fx-font-weight: bold; -fx-pref-width: 350px;
+                       -fx-pref-height: 42px; -fx-background-radius: 22;
+                       -fx-cursor: hand;"/>
 
         <!-- Lien Register -->
         <HBox alignment="CENTER" spacing="5">

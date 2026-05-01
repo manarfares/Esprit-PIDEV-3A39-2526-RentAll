@@ -1,26 +1,24 @@
 package org.example.controllers;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.models.User;
 import org.example.services.ServiceUser;
+import org.example.utils.IdleSessionManager;
 
 public class GuestController {
 
-    @FXML private Label         lblWelcome;
-    @FXML private Label         lblRole;
-    @FXML private Label         lblStatus;
-    @FXML private TextField     tfUsername;
-    @FXML private TextField     tfEmail;
-    @FXML private TextField     tfPhone;
-    @FXML private PasswordField pfPassword;
-    @FXML private Label         lblMessage;
-    @FXML private Button        btnDevenirHost;
-    @FXML private Label lblBadge;
+    @FXML private Label  lblWelcome;
+    @FXML private Label  lblRole;
+    @FXML private Label  lblStatus;
+    @FXML private Label  lblBadge;
+    @FXML private Button btnDevenirHost;
 
     private ServiceUser service     = new ServiceUser();
     private User        currentUser;
@@ -31,11 +29,16 @@ public class GuestController {
         lblWelcome.setText("👋 Bienvenue, " + user.getUsername());
         lblRole.setText("Rôle : " + user.getRole());
         lblStatus.setText("Statut : " + user.getStatus());
-        tfUsername.setText(user.getUsername());
-        tfEmail.setText(user.getEmail());
-        tfPhone.setText(user.getPhone() != null ? user.getPhone() : "");
 
+        // Badge UNVERIFIED si HOST_PENDING
         if (user.getRole().equals("ROLE_HOST_PENDING")) {
+            lblBadge.setText("⚠️ UNVERIFIED");
+            lblBadge.setStyle(
+                    "-fx-font-size: 10px; -fx-text-fill: white;" +
+                            "-fx-background-color: #e67e22;" +
+                            "-fx-padding: 3 10 3 10; -fx-background-radius: 10;" +
+                            "-fx-font-weight: bold;"
+            );
             btnDevenirHost.setText("⏳ Demande en attente...");
             btnDevenirHost.setDisable(true);
             btnDevenirHost.setStyle(
@@ -43,56 +46,55 @@ public class GuestController {
                             "-fx-pref-width: 370px; -fx-pref-height: 42px;" +
                             "-fx-background-radius: 21;"
             );
+        } else {
+            lblBadge.setText("");
         }
+
+        // Active la déconnexion automatique sur cette scene
+        Platform.runLater(() -> {
+            Scene scene = lblWelcome.getScene();
+            if (scene != null) {
+                IdleSessionManager.attachToScene(scene, user);
+            }
+        });
     }
 
     private boolean tokenValide() {
         if (!service.verifierToken(currentUser.getId(),
                 currentUser.getSessionToken())) {
-            showMessage("❌ Session expirée. Reconnectez-vous.", false);
             return false;
         }
         return true;
     }
 
+    // ── Ouvrir fenêtre Modifier ────────────────
     @FXML
-    public void handleUpdate() {
+    public void handleOuvrirModifier() {
         if (!tokenValide()) return;
-
-        String username = tfUsername.getText().trim();
-        String email    = tfEmail.getText().trim();
-        String phone    = tfPhone.getText().trim();
-        String password = pfPassword.getText().trim();
-
-        if (username.isEmpty() || email.isEmpty()) {
-            showMessage("⚠️ Username et Email sont obligatoires.", false);
-            return;
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/edit_profil.fxml"));
+            Parent root = loader.load();
+            EditUserController ctrl = loader.getController();
+            ctrl.initProfil(service, currentUser);
+            Stage stage = new Stage();
+            stage.setTitle("✏️ Modifier mon profil");
+            stage.setScene(new Scene(root));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        currentUser.setUsername(username);
-        currentUser.setEmail(email);
-        currentUser.setPhone(phone.isEmpty() ? null : phone);
-
-        if (!password.isEmpty()) {
-            if (password.length() < 6) {
-                showMessage("⚠️ Mot de passe trop court (min 6).", false);
-                return;
-            }
-            currentUser.setPassword(password);
-        }
-
-        service.modifier(currentUser);
-        showMessage("✅ Profil mis à jour !", true);
-        lblWelcome.setText("👋 Bienvenue, " + currentUser.getUsername());
     }
 
+    // ── Devenir Host ───────────────────────────
     @FXML
     public void handleDevenirHost() {
         if (!tokenValide()) return;
 
         service.demanderHost(currentUser.getId());
 
-        // Afficher badge immédiatement
+        lblRole.setText("Rôle : ROLE_HOST_PENDING");
         lblBadge.setText("⚠️ UNVERIFIED");
         lblBadge.setStyle(
                 "-fx-font-size: 10px; -fx-text-fill: white;" +
@@ -100,11 +102,6 @@ public class GuestController {
                         "-fx-padding: 3 10 3 10; -fx-background-radius: 10;" +
                         "-fx-font-weight: bold;"
         );
-
-        // Mettre à jour le rôle affiché
-        lblRole.setText("Rôle : ROLE_HOST_PENDING");
-
-        // Désactiver le bouton
         btnDevenirHost.setText("⏳ Demande en attente...");
         btnDevenirHost.setDisable(true);
         btnDevenirHost.setStyle(
@@ -112,8 +109,6 @@ public class GuestController {
                         "-fx-pref-width: 370px; -fx-pref-height: 42px;" +
                         "-fx-background-radius: 21;"
         );
-
-        showMessage("📩 Demande envoyée ! Badge UNVERIFIED actif.", true);
     }
 
     // ── Retour Accueil ─────────────────────────
@@ -137,6 +132,7 @@ public class GuestController {
     // ── Déconnexion ────────────────────────────
     @FXML
     public void handleLogout() {
+        IdleSessionManager.detachCurrent();
         service.logout(currentUser.getId());
         currentUser.logout();
         try {
@@ -148,12 +144,5 @@ public class GuestController {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void showMessage(String msg, boolean success) {
-        lblMessage.setStyle(success
-                ? "-fx-text-fill: #27ae60; -fx-font-size: 12px;"
-                : "-fx-text-fill: #e74c3c; -fx-font-size: 12px;");
-        lblMessage.setText(msg);
     }
 }

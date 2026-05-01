@@ -17,10 +17,25 @@ public class UserDAO {
         String email        = rs.getString("email");
         String password     = rs.getString("password");
         String phone        = rs.getString("phone");
-        String profileImage = rs.getString("profile_image");
-        String status       = rs.getString("status");
-        String role         = rs.getString("role");
+        String profileImage = rs.getString("avatar");
+        String status       = rs.getString("account_status");
+        String rolesJson    = rs.getString("roles");
         String sessionToken = rs.getString("session_token");
+
+        // Fallback username = email si null (intégration Symfony)
+        if (username == null || username.isEmpty()) username = email;
+
+        // Extraire rôle principal depuis le JSON Symfony
+        String role;
+        if (rolesJson == null)                                role = "ROLE_USER";
+        else if (rolesJson.contains("ROLE_ADMIN"))            role = "ROLE_ADMIN";
+        else if (rolesJson.contains("ROLE_HOST_PENDING"))     role = "ROLE_HOST_PENDING";
+        else if (rolesJson.contains("ROLE_HOST"))             role = "ROLE_HOST";
+        else if (rolesJson.contains("ROLE_GUEST"))            role = "ROLE_GUEST";
+        else                                                  role = "ROLE_USER";
+
+        // Normaliser status en majuscules pour le code Java existant
+        if (status != null) status = status.toUpperCase();
 
         LocalDateTime hostRequestDate = rs.getTimestamp("host_request_date") != null
                 ? rs.getTimestamp("host_request_date").toLocalDateTime() : null;
