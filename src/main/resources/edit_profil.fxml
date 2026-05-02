@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controllers.EditUserController"
+      prefWidth="550" prefHeight="700"
+      spacing="0"
+      style="-fx-background-color: white;">
+
+    <HBox style="-fx-background-color: linear-gradient(to right, #f39c12, #e67e22);
+                 -fx-padding: 20 25 20 25;"
+          alignment="CENTER_LEFT" spacing="10">
+        <Label text="✏️" style="-fx-font-size: 20px;"/>
+        <Label text="Modifier mon profil"
+               style="-fx-font-size: 16px; -fx-font-weight: bold;
+                      -fx-text-fill: white;"/>
+    </HBox>
+
+    <ScrollPane fitToWidth="true" hbarPolicy="NEVER"
+                style="-fx-background: white; -fx-background-color: white; -fx-border-color: transparent;">
+    <VBox spacing="10" style="-fx-padding: 25;">
+
+        <!-- Statut vérification faciale -->
+        <Label fx:id="lblVerifStatus" text="" wrapText="true"
+               style="-fx-font-size: 11px; -fx-font-weight: bold;"/>
+
+        <!-- Username -->
+        <VBox spacing="3">
+            <Label text="Nom d'utilisateur"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <TextField fx:id="tfUsername"
+                       style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                              -fx-background-color: #f8f9fa;
+                              -fx-border-color: #e0e0e0;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 0 12 0 12;"/>
+            <Label fx:id="lblErrUsername" text=""
+                   style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
+        </VBox>
+
+        <!-- Email -->
+        <VBox spacing="3">
+            <Label text="Email"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <TextField fx:id="tfEmail"
+                       style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                              -fx-background-color: #f8f9fa;
+                              -fx-border-color: #e0e0e0;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 0 12 0 12;"/>
+            <Label fx:id="lblErrEmail" text=""
+                   style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
+        </VBox>
+
+        <!-- Phone -->
+        <VBox spacing="3">
+            <Label text="Téléphone (optionnel)"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <TextField fx:id="tfPhone" promptText="+216 XX XXX XXX"
+                       style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                              -fx-background-color: #f8f9fa;
+                              -fx-border-color: #e0e0e0;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 0 12 0 12;"/>
+            <Label fx:id="lblErrPhone" text=""
+                   style="-fx-font-size: 10px; -fx-text-fill: #e74c3c;"/>
+        </VBox>
+
+        <!-- Cb pour admin (rôle/status) - cachés en mode profil personnel -->
+        <ComboBox fx:id="cbRole"  visible="false" managed="false"/>
+        <ComboBox fx:id="cbStatus" visible="false" managed="false"/>
+
+        <!-- ═══════════ VÉRIFICATION FACIALE ═══════════ -->
+        <Separator style="-fx-padding: 8 0 8 0;"/>
+        <Label text="🛡️  Vérification d'identité (selfie + pièce d'identité)"
+               style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+        <Label text="Pour activer la connexion faciale, fournissez un selfie net et une photo de votre CIN. Les deux visages seront comparés automatiquement."
+               wrapText="true"
+               style="-fx-font-size: 11px; -fx-text-fill: #7f8c8d;"/>
+
+        <!-- Selfie -->
+        <VBox spacing="4">
+            <Label text="Selfie (votre visage)"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button fx:id="btnPickSelfie" text="📁 Choisir un fichier"
+                        onAction="#handlePickSelfie"
+                        style="-fx-background-color: white; -fx-text-fill: #2c3e50;
+                               -fx-font-size: 11px; -fx-pref-height: 32px;
+                               -fx-background-radius: 6; -fx-border-color: #dadce0;
+                               -fx-border-radius: 6; -fx-cursor: hand;"/>
+                <Button fx:id="btnCaptureSelfie" text="📷 Webcam"
+                        onAction="#handleCaptureSelfie"
+                        style="-fx-background-color: #16a085; -fx-text-fill: white;
+                               -fx-font-size: 11px; -fx-pref-height: 32px;
+                               -fx-background-radius: 6; -fx-cursor: hand;"/>
+                <Label fx:id="lblSelfieFile" text="Aucun fichier sélectionné"
+                       style="-fx-font-size: 10px; -fx-text-fill: #7f8c8d;"/>
+            </HBox>
+        </VBox>
+
+        <!-- CIN -->
+        <VBox spacing="4">
+            <Label text="Pièce d'identité (photo de votre CIN)"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button fx:id="btnPickCin" text="📁 Choisir un fichier"
+                        onAction="#handlePickCin"
+                        style="-fx-background-color: white; -fx-text-fill: #2c3e50;
+                               -fx-font-size: 11px; -fx-pref-height: 32px;
+                               -fx-background-radius: 6; -fx-border-color: #dadce0;
+                               -fx-border-radius: 6; -fx-cursor: hand;"/>
+                <Label fx:id="lblCinFile" text="Aucun fichier sélectionné"
+                       style="-fx-font-size: 10px; -fx-text-fill: #7f8c8d;"/>
+            </HBox>
+        </VBox>
+
+        <Label text="ℹ️  Sélectionnez les DEUX fichiers pour déclencher la vérification automatique. Sinon laissez vides pour ne rien changer."
+               wrapText="true"
+               style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
+
+        <!-- Message global -->
+        <Label fx:id="lblMessage" text="" wrapText="true"
+               style="-fx-font-size: 11px;"/>
+
+        <!-- Boutons -->
+        <HBox spacing="10" alignment="CENTER" style="-fx-padding: 8 0 0 0;">
+            <Button text="💾 Enregistrer"
+                    onAction="#handleModifier"
+                    style="-fx-background-color: linear-gradient(to right, #f39c12, #e67e22);
+                           -fx-text-fill: white; -fx-font-size: 13px;
+                           -fx-font-weight: bold; -fx-pref-width: 220px;
+                           -fx-pref-height: 42px; -fx-background-radius: 21;
+                           -fx-cursor: hand;"/>
+            <Button text="✖ Fermer"
+                    onAction="#handleFermer"
+                    style="-fx-background-color: white;
+                           -fx-text-fill: #e74c3c; -fx-font-size: 13px;
+                           -fx-font-weight: bold; -fx-pref-width: 220px;
+                           -fx-pref-height: 42px; -fx-background-radius: 21;
+                           -fx-cursor: hand; -fx-border-color: #e74c3c;
+                           -fx-border-radius: 21;"/>
+        </HBox>
+
+    </VBox>
+    </ScrollPane>
+</VBox>
