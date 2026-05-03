@@ -7,20 +7,20 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Lecture des informations du foyer (maison) lie a une reservation.
+ * Lecture des informations du logement lie a une reservation.
  * Aucune modification de la base : SELECT uniquement.
  */
 public interface IFoyerService {
 
     /**
-     * {@code prix_par_nuit} du foyer (table {@code foyer}, cle {@code id}).
+     * Prix par nuit du logement, lu depuis la table detectee en base.
      *
-     * @return vide si aucune ligne pour cet id, ou si {@code prix_par_nuit} est NULL
+     * @return vide si aucune ligne pour cet id, ou si le prix est NULL
      */
     Optional<BigDecimal> getPrixParNuitParFoyerId(int foyerId);
 
     /**
-     * Liste des logements pour listes déroulantes (libellés construits en lecture seule).
+     * Liste des logements pour listes deroulantes, avec libelle et prix par nuit.
      */
     List<FoyerListItem> listerFoyersPourSelection();
 }

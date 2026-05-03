@@ -4,6 +4,7 @@
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:id="rootPane"
             fx:controller="tn.piapp.ui.HomeController"
             prefWidth="1100" prefHeight="700"
             style="-fx-background-color: #f8f9fa;">
@@ -30,6 +31,7 @@
                 <HBox spacing="20" alignment="CENTER_LEFT"
                       HBox.hgrow="ALWAYS">
                     <Button text="🏠 Stays"
+                            onAction="#handleShowStays"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
@@ -43,11 +45,19 @@
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
-                    <Button text="🚗 Covoiturage"
+                    <Button text="📅 Réservations"
+                            fx:id="btnReservations"
+                            onAction="#handleOpenReservations"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
-                    <Button text="📅 Mes réservations"
+                    <Button text="⭐ Avis"
+                            fx:id="btnAvis"
+                            onAction="#handleOpenAvis"
+                            style="-fx-background-color: transparent;
+                                   -fx-text-fill: #2c3e50; -fx-font-size: 13px;
+                                   -fx-cursor: hand; -fx-border-color: transparent;"/>
+                    <Button text="🚗 Covoiturage"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>

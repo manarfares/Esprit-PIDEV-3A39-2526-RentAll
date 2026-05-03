@@ -3,6 +3,7 @@ package com.rentall.services;
 import com.rentall.config.DatabaseConnection;
 import com.rentall.dto.AvisDashboardRow;
 import com.rentall.util.SchemaColumnPicker;
+import tn.piapp.model.User;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ import java.util.Set;
 public class AvisDashboardService {
 
     private final Connection connection = DatabaseConnection.getConnection();
+    private final ReservationService reservationService = new ReservationService();
 
     /**
      * Récupère tous les avis avec les informations de logement et locataire.
@@ -50,6 +52,16 @@ public class AvisDashboardService {
             System.err.println("Erreur récupération dashboard avis : " + e.getMessage());
         }
         
+        return rows;
+    }
+
+    public List<AvisDashboardRow> getAvisDashboardForUser(User user) {
+        List<AvisDashboardRow> rows = new ArrayList<>();
+        for (AvisDashboardRow row : getAvisDashboard()) {
+            if (reservationService.peutVoirReservation(row.getReservationId(), user)) {
+                rows.add(row);
+            }
+        }
         return rows;
     }
 

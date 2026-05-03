@@ -3,8 +3,12 @@ package com.rentall.services;
 import com.rentall.config.DatabaseConnection;
 import com.rentall.dto.ReservationTableRow;
 import com.rentall.entities.Reservation;
+import com.rentall.util.SchemaColumnPicker;
+import tn.piapp.model.User;
+import tn.piapp.util.SessionManager;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,6 +66,12 @@ public class ReservationService implements IReservationService {
      * @return L'ID de la réservation créée, ou -1 en cas d'erreur
      */
     public int ajouterEtRetournerId(Reservation reservation) {
+        Reservation autorisee = reservationPourCreationAutorisee(reservation);
+        if (autorisee == null) {
+            System.out.println("Ajout de réservation refusé : rôle non autorisé.");
+            return -1;
+        }
+
         String sql = "INSERT INTO reservation " +
                      "(logement_id, locataire_id, date_debut, date_fin, " +
                      "montant_total, statut, date_creation, nombre_personnes) " +
@@ -69,14 +79,14 @@ public class ReservationService implements IReservationService {
         try {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-            ps.setInt(1, reservation.getFoyerId());
-            ps.setInt(2, reservation.getLocataireId());
-            ps.setTimestamp(3, Timestamp.valueOf(reservation.getDateDebut()));
-            ps.setTimestamp(4, Timestamp.valueOf(reservation.getDateFin()));
-            ps.setBigDecimal(5, reservation.getMontantTotal());
-            ps.setString(6, reservation.getStatut());
-            ps.setTimestamp(7, Timestamp.valueOf(reservation.getDateCreation()));
-            ps.setInt(8, reservation.getNombrePersonnes());
+            ps.setInt(1, autorisee.getFoyerId());
+            ps.setInt(2, autorisee.getLocataireId());
+            ps.setTimestamp(3, Timestamp.valueOf(autorisee.getDateDebut()));
+            ps.setTimestamp(4, Timestamp.valueOf(autorisee.getDateFin()));
+            ps.setBigDecimal(5, autorisee.getMontantTotal());
+            ps.setString(6, autorisee.getStatut());
+            ps.setTimestamp(7, Timestamp.valueOf(autorisee.getDateCreation()));
+            ps.setInt(8, autorisee.getNombrePersonnes());
 
             int affectedRows = ps.executeUpdate();
             
@@ -104,6 +114,16 @@ public class ReservationService implements IReservationService {
     // =========================================================
     @Override
     public void modifier(Reservation reservation) {
+        modifierEtRetournerSucces(reservation);
+    }
+
+    public boolean modifierEtRetournerSucces(Reservation reservation) {
+        Reservation autorisee = reservationPourModificationAutorisee(reservation);
+        if (autorisee == null) {
+            System.out.println("Modification de réservation refusée : droits insuffisants.");
+            return false;
+        }
+
         String sql = "UPDATE reservation SET " +
                      "logement_id=?, locataire_id=?, date_debut=?, date_fin=?, " +
                      "montant_total=?, statut=?, date_creation=?, nombre_personnes=? " +
@@ -111,23 +131,27 @@ public class ReservationService implements IReservationService {
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
 
-            ps.setInt(1, reservation.getFoyerId());
-            ps.setInt(2, reservation.getLocataireId());
-            ps.setTimestamp(3, Timestamp.valueOf(reservation.getDateDebut()));
-            ps.setTimestamp(4, Timestamp.valueOf(reservation.getDateFin()));
-            ps.setBigDecimal(5, reservation.getMontantTotal());
-            ps.setString(6, reservation.getStatut());
-            ps.setTimestamp(7, Timestamp.valueOf(reservation.getDateCreation()));
-            ps.setInt(8, reservation.getNombrePersonnes());
+            ps.setInt(1, autorisee.getFoyerId());
+            ps.setInt(2, autorisee.getLocataireId());
+            ps.setTimestamp(3, Timestamp.valueOf(autorisee.getDateDebut()));
+            ps.setTimestamp(4, Timestamp.valueOf(autorisee.getDateFin()));
+            ps.setBigDecimal(5, autorisee.getMontantTotal());
+            ps.setString(6, autorisee.getStatut());
+            ps.setTimestamp(7, Timestamp.valueOf(autorisee.getDateCreation()));
+            ps.setInt(8, autorisee.getNombrePersonnes());
             // Position 9 → le WHERE id=?
-            ps.setInt(9, reservation.getId());
+            ps.setInt(9, autorisee.getId());
 
-            ps.executeUpdate();
+            int updatedRows = ps.executeUpdate();
+            System.out.println("[ReservationService] update réservation id=" + autorisee.getId()
+                    + ", lignes modifiées=" + updatedRows);
             System.out.println("✅ Réservation modifiée avec succès !");
+            return updatedRows > 0;
 
         } catch (SQLException e) {
             System.out.println("❌ Erreur modification réservation : " + e.getMessage());
         }
+        return false;
     }
 
     // =========================================================
@@ -137,6 +161,11 @@ public class ReservationService implements IReservationService {
     // =========================================================
     @Override
     public void supprimer(int id) {
+        if (!peutSupprimerReservation(id, currentUser())) {
+            System.out.println("Suppression de réservation refusée : droits insuffisants.");
+            return;
+        }
+
         String sql = "DELETE FROM reservation WHERE id=?";
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -222,6 +251,133 @@ public class ReservationService implements IReservationService {
     }
 
     @Override
+    public boolean estLogementDisponible(int logementId, LocalDateTime dateDebut,
+                                         LocalDateTime dateFin) {
+        return estLogementDisponible(logementId, dateDebut, dateFin, null);
+    }
+
+    @Override
+    public boolean estLogementDisponible(int logementId, LocalDateTime dateDebut,
+                                         LocalDateTime dateFin,
+                                         Integer reservationIdAExclure) {
+        if (logementId <= 0 || dateDebut == null || dateFin == null || !dateFin.isAfter(dateDebut)) {
+            return false;
+        }
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM reservation "
+                        + "WHERE logement_id = ? "
+                        + "AND ? < date_fin "
+                        + "AND ? > date_debut "
+                        + "AND LOWER(COALESCE(statut, '')) NOT IN "
+                        + "('annulee', 'annulée', 'cancelled', 'canceled', 'refusee', 'refusée')");
+
+        if (reservationIdAExclure != null) {
+            sql.append(" AND id <> ?");
+        }
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            ps.setInt(1, logementId);
+            ps.setTimestamp(2, Timestamp.valueOf(dateDebut));
+            ps.setTimestamp(3, Timestamp.valueOf(dateFin));
+            if (reservationIdAExclure != null) {
+                ps.setInt(4, reservationIdAExclure);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) == 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur verification disponibilite logement : " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean modifierStatut(int reservationId, String nouveauStatut) {
+        Reservation existante = afficherParId(reservationId);
+        if (existante == null) {
+            return false;
+        }
+        Reservation copie = copyOf(existante);
+        copie.setStatut(nouveauStatut);
+        Reservation autorisee = reservationPourModificationAutorisee(copie);
+        if (autorisee == null) {
+            return false;
+        }
+        modifier(autorisee);
+        return true;
+    }
+
+    private Reservation reservationPourCreationAutorisee(Reservation reservation) {
+        User user = currentUser();
+        if (user == null) {
+            Reservation copie = copyOf(reservation);
+            copie.setStatut(normalizeStatut(copie.getStatut(), "en_attente"));
+            return copie;
+        }
+
+        if (isHost(user)) {
+            return null;
+        }
+
+        Reservation copie = copyOf(reservation);
+        if (isGuest(user)) {
+            copie.setLocataireId(user.getId());
+            copie.setStatut("en_attente");
+            return copie;
+        }
+
+        if (isAdmin(user)) {
+            copie.setStatut(normalizeStatut(copie.getStatut(), "en_attente"));
+            return copie;
+        }
+
+        return null;
+    }
+
+    private Reservation reservationPourModificationAutorisee(Reservation reservation) {
+        Reservation existante = reservation.getId() > 0 ? afficherParId(reservation.getId()) : null;
+        if (existante == null) {
+            return null;
+        }
+
+        User user = currentUser();
+        if (user == null) {
+            Reservation copie = copyOf(reservation);
+            copie.setStatut(normalizeStatut(copie.getStatut(), existante.getStatut()));
+            return copie;
+        }
+
+        if (isAdmin(user)) {
+            Reservation copie = copyOf(reservation);
+            copie.setStatut(normalizeStatut(copie.getStatut(), existante.getStatut()));
+            return copie;
+        }
+
+        if (isGuest(user)) {
+            if (!reservationAppartientAuLocataire(existante, user) || !isPending(existante.getStatut())) {
+                return null;
+            }
+            Reservation copie = copyOf(reservation);
+            copie.setLocataireId(user.getId());
+            copie.setStatut(existante.getStatut());
+            return copie;
+        }
+
+        if (isHost(user)) {
+            String nouveauStatut = normalizeStatut(reservation.getStatut(), existante.getStatut());
+            if (!reservationLieeAuHost(existante, user)
+                    || !transitionStatutHostAutorisee(existante.getStatut(), nouveauStatut)) {
+                return null;
+            }
+            Reservation copie = copyOf(existante);
+            copie.setStatut(nouveauStatut);
+            return copie;
+        }
+
+        return null;
+    }
+
+    @Override
     public List<ReservationTableRow> listerPourAffichageTableau() {
         try {
             if (memoListeAffichageSql == null || !memoListeAffichageSql.contains("r.id")) {
@@ -265,5 +421,214 @@ public class ReservationService implements IReservationService {
             ));
         }
         return out;
+    }
+
+    public List<ReservationTableRow> listerPourAffichageTableauPourUtilisateur(User user) {
+        List<ReservationTableRow> rows = new ArrayList<>();
+        for (ReservationTableRow row : listerPourAffichageTableau()) {
+            if (peutVoirReservation(row.getId(), user)) {
+                rows.add(row);
+            }
+        }
+        return rows;
+    }
+
+    public List<Reservation> afficherTousPourUtilisateur(User user) {
+        List<Reservation> rows = new ArrayList<>();
+        for (Reservation reservation : afficherTous()) {
+            if (peutVoirReservation(reservation, user)) {
+                rows.add(reservation);
+            }
+        }
+        return rows;
+    }
+
+    public boolean peutVoirReservation(int reservationId, User user) {
+        Reservation reservation = afficherParId(reservationId);
+        return reservation != null && peutVoirReservation(reservation, user);
+    }
+
+    public boolean peutVoirReservation(Reservation reservation, User user) {
+        if (reservation == null) {
+            return false;
+        }
+        if (user == null || isAdmin(user)) {
+            return true;
+        }
+        if (isGuest(user)) {
+            return reservationAppartientAuLocataire(reservation, user);
+        }
+        if (isHost(user)) {
+            return reservationLieeAuHost(reservation, user);
+        }
+        return false;
+    }
+
+    public boolean peutModifierReservation(Reservation reservation, User user) {
+        if (reservation == null) {
+            return false;
+        }
+        if (user == null || isAdmin(user)) {
+            return true;
+        }
+        return isGuest(user)
+                && reservationAppartientAuLocataire(reservation, user)
+                && isPending(reservation.getStatut());
+    }
+
+    public boolean peutSupprimerReservation(int reservationId, User user) {
+        Reservation reservation = afficherParId(reservationId);
+        if (reservation == null) {
+            return false;
+        }
+        if (user == null || isAdmin(user)) {
+            return true;
+        }
+        return isGuest(user)
+                && reservationAppartientAuLocataire(reservation, user)
+                && isPending(reservation.getStatut());
+    }
+
+    public boolean peutChangerStatutReservation(int reservationId, String nouveauStatut, User user) {
+        Reservation reservation = afficherParId(reservationId);
+        if (reservation == null) {
+            return false;
+        }
+        if (user == null || isAdmin(user)) {
+            return true;
+        }
+        return isHost(user)
+                && reservationLieeAuHost(reservation, user)
+                && transitionStatutHostAutorisee(reservation.getStatut(), nouveauStatut);
+    }
+
+    public boolean reservationAppartientAuLocataire(int reservationId, User user) {
+        Reservation reservation = afficherParId(reservationId);
+        return reservation != null && reservationAppartientAuLocataire(reservation, user);
+    }
+
+    public boolean reservationLieeAuHost(int reservationId, User user) {
+        Reservation reservation = afficherParId(reservationId);
+        return reservation != null && reservationLieeAuHost(reservation, user);
+    }
+
+    private boolean reservationAppartientAuLocataire(Reservation reservation, User user) {
+        return user != null && reservation.getLocataireId() == user.getId();
+    }
+
+    private boolean reservationLieeAuHost(Reservation reservation, User user) {
+        if (reservation == null || user == null) {
+            return false;
+        }
+
+        for (String table : new String[]{"logement", "foyer", "home"}) {
+            try {
+                if (!SchemaColumnPicker.tableExists(connection, table)) {
+                    continue;
+                }
+                List<String> ownerColumns = hostOwnerColumns(table);
+                if (ownerColumns.isEmpty()) {
+                    continue;
+                }
+
+                StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM `")
+                        .append(table)
+                        .append("` WHERE id=? AND (");
+                for (int i = 0; i < ownerColumns.size(); i++) {
+                    if (i > 0) {
+                        sql.append(" OR ");
+                    }
+                    sql.append("`").append(ownerColumns.get(i)).append("`=?");
+                }
+                sql.append(")");
+
+                try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+                    ps.setInt(1, reservation.getFoyerId());
+                    for (int i = 0; i < ownerColumns.size(); i++) {
+                        ps.setInt(i + 2, user.getId());
+                    }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                System.out.println("Verification host/logement impossible : " + e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private List<String> hostOwnerColumns(String table) throws SQLException {
+        List<String> out = new ArrayList<>();
+        List<String> candidates = List.of(
+                "hote_id", "host_id", "proprietaire_id", "owner_id", "user_id", "utilisateur_id");
+        List<String> cols = new ArrayList<>(SchemaColumnPicker.columns(connection, table));
+        for (String candidate : candidates) {
+            if (cols.contains(candidate)) {
+                out.add(candidate);
+            }
+        }
+        return out;
+    }
+
+    private boolean transitionStatutHostAutorisee(String ancien, String nouveau) {
+        String from = normalizeStatut(ancien, "en_attente");
+        String to = normalizeStatut(nouveau, from);
+        return ("en_attente".equals(from) && ("confirmee".equals(to) || "refusee".equals(to)))
+                || ("confirmee".equals(from) && "terminee".equals(to));
+    }
+
+    private boolean isPending(String statut) {
+        return "en_attente".equals(normalizeStatut(statut, ""));
+    }
+
+    private User currentUser() {
+        return SessionManager.getInstance().getCurrentUser();
+    }
+
+    private boolean isAdmin(User user) {
+        return user != null && "ROLE_ADMIN".equals(user.getRole());
+    }
+
+    private boolean isHost(User user) {
+        return user != null && "ROLE_HOST".equals(user.getRole());
+    }
+
+    private boolean isGuest(User user) {
+        if (user == null || user.getRole() == null) {
+            return false;
+        }
+        String role = user.getRole();
+        return "ROLE_GUEST".equals(role)
+                || "ROLE_USER".equals(role)
+                || "ROLE_HOST_PENDING".equals(role);
+    }
+
+    private static String normalizeStatut(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback == null || fallback.isBlank() ? "en_attente" : fallback.trim().toLowerCase();
+        }
+        return value.trim()
+                .toLowerCase()
+                .replace('é', 'e')
+                .replace('è', 'e')
+                .replace('ê', 'e');
+    }
+
+    private static Reservation copyOf(Reservation source) {
+        Reservation copy = new Reservation(
+                source.getFoyerId(),
+                source.getLocataireId(),
+                source.getDateDebut(),
+                source.getDateFin(),
+                source.getMontantTotal(),
+                source.getStatut(),
+                source.getDateCreation(),
+                source.getNombrePersonnes()
+        );
+        copy.setId(source.getId());
+        return copy;
     }
 }

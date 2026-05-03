@@ -8,6 +8,7 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 import tn.piapp.model.User;
 import tn.piapp.dao.ServiceUser;
+import tn.piapp.util.SessionManager;
 
 public class LoginController {
 
@@ -48,6 +49,8 @@ public class LoginController {
             lblErreur.setText("❌ Erreur de session.");
             return;
         }
+
+        SessionManager.getInstance().setCurrentUser(user);
 
         try {
             String fxml;

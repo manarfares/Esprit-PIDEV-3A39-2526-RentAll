@@ -19,6 +19,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 /**
  * Service de génération de factures PDF pour les réservations.
@@ -101,6 +103,79 @@ public class PdfReservationService {
         } catch (Exception e) {
             NotificationService.showError("Erreur PDF", "Echec de la generation : " + e.getMessage());
             return null;
+        }
+    }
+
+    public void genererFicheReservationPdf(ReservationTableRow row, File outputFile)
+            throws IOException, DocumentException {
+        if (row == null) {
+            throw new IllegalArgumentException("Réservation invalide.");
+        }
+        if (outputFile == null) {
+            throw new IllegalArgumentException("Fichier de sortie invalide.");
+        }
+
+        File parent = outputFile.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("Impossible de créer le dossier : " + parent.getAbsolutePath());
+        }
+
+        try (FileOutputStream out = new FileOutputStream(outputFile)) {
+            Document document = new Document(PageSize.A4, 50, 50, 50, 50);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setCloseStream(false);
+            try {
+                document.open();
+                addReservationSheet(document, row);
+            } finally {
+                if (document.isOpen()) {
+                    document.close();
+                }
+            }
+        }
+    }
+
+    public void genererListeReservationsPdf(List<ReservationTableRow> rows, File outputFile)
+            throws IOException, DocumentException {
+        if (rows == null || rows.isEmpty()) {
+            throw new IllegalArgumentException("Aucune réservation à exporter.");
+        }
+        if (outputFile == null) {
+            throw new IllegalArgumentException("Fichier de sortie invalide.");
+        }
+
+        File parent = outputFile.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("Impossible de créer le dossier : " + parent.getAbsolutePath());
+        }
+
+        try (FileOutputStream out = new FileOutputStream(outputFile)) {
+            Document document = new Document(PageSize.A4.rotate(), 30, 30, 35, 35);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setCloseStream(false);
+            try {
+                document.open();
+
+                Font titleFont = new Font(Font.HELVETICA, 20, Font.BOLD, Color.BLACK);
+                Paragraph title = new Paragraph("Liste des réservations", titleFont);
+                title.setAlignment(Element.ALIGN_CENTER);
+                title.setSpacingAfter(10);
+                document.add(title);
+
+                Font metaFont = new Font(Font.HELVETICA, 10, Font.NORMAL, Color.DARK_GRAY);
+                Paragraph exportedAt = new Paragraph(
+                        "Date d’export : " + LocalDateTime.now().format(DATE_FORMATTER),
+                        metaFont);
+                exportedAt.setAlignment(Element.ALIGN_CENTER);
+                exportedAt.setSpacingAfter(20);
+                document.add(exportedAt);
+
+                addReservationsExportTable(document, rows);
+            } finally {
+                if (document.isOpen()) {
+                    document.close();
+                }
+            }
         }
     }
 
@@ -245,6 +320,85 @@ public class PdfReservationService {
         document.add(table);
     }
 
+    private void addReservationSheet(Document document, ReservationTableRow row) throws DocumentException {
+        Font titleFont = new Font(Font.HELVETICA, 22, Font.BOLD, Color.BLACK);
+        Paragraph title = new Paragraph("Fiche de réservation", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        title.setSpacingAfter(20);
+        document.add(title);
+
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+        table.setSpacingBefore(10);
+        table.setSpacingAfter(20);
+
+        addTableRow(table, "Référence / ID réservation :", "RES-" + row.getId(), true);
+        addTableRow(table, "Logement :", row.getFoyerLibelle(), false);
+        addTableRow(table, "Locataire :", row.getLocataireLibelle(), false);
+        addTableRow(table, "Date début :", row.getDateDebut().format(DATE_FORMATTER), false);
+        addTableRow(table, "Date fin :", row.getDateFin().format(DATE_FORMATTER), false);
+        addTableRow(table, "Nombre de jours :", String.valueOf(nombreJours(row)), false);
+        addTableRow(table, "Nombre de personnes :", String.valueOf(row.getNombrePersonnes()), false);
+        BigDecimal montant = row.getMontantTotal();
+        addTableRow(table, "Montant total :", montant != null ? montant + " DT" : "-", true);
+        addTableRow(table, "Statut :", formatStatut(row.getStatut()), false);
+        addTableRow(table, "Date d'export :", LocalDateTime.now().format(DATE_FORMATTER), false);
+
+        document.add(table);
+    }
+
+    private long nombreJours(ReservationTableRow row) {
+        long jours = ChronoUnit.DAYS.between(
+                row.getDateDebut().toLocalDate(),
+                row.getDateFin().toLocalDate());
+        return Math.max(1, jours);
+    }
+
+    private void addReservationsExportTable(Document document, List<ReservationTableRow> rows)
+            throws DocumentException {
+        PdfPTable table = new PdfPTable(7);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{2.2f, 2.2f, 1.8f, 1.8f, 1.4f, 1.3f, 1.0f});
+        table.setSpacingBefore(10);
+
+        addHeaderCell(table, "Logement");
+        addHeaderCell(table, "Locataire");
+        addHeaderCell(table, "Date début");
+        addHeaderCell(table, "Date fin");
+        addHeaderCell(table, "Montant");
+        addHeaderCell(table, "Statut");
+        addHeaderCell(table, "Personnes");
+
+        for (ReservationTableRow row : rows) {
+            addBodyCell(table, row.getFoyerLibelle());
+            addBodyCell(table, row.getLocataireLibelle());
+            addBodyCell(table, row.getDateDebut().format(DATE_FORMATTER));
+            addBodyCell(table, row.getDateFin().format(DATE_FORMATTER));
+            BigDecimal montant = row.getMontantTotal();
+            addBodyCell(table, montant != null ? montant + " DT" : "-");
+            addBodyCell(table, formatStatut(row.getStatut()));
+            addBodyCell(table, String.valueOf(row.getNombrePersonnes()));
+        }
+
+        document.add(table);
+    }
+
+    private void addHeaderCell(PdfPTable table, String text) {
+        Font font = new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(new Color(108, 99, 255));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setPadding(6);
+        table.addCell(cell);
+    }
+
+    private void addBodyCell(PdfPTable table, String text) {
+        Font font = new Font(Font.HELVETICA, 8, Font.NORMAL, Color.BLACK);
+        PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "-", font));
+        cell.setPadding(5);
+        table.addCell(cell);
+    }
+
     private void addSectionTitle(Document document, String title) throws DocumentException {
         Font sectionFont = new Font(Font.HELVETICA, 14, Font.BOLD, new Color(34, 139, 34));
         Paragraph section = new Paragraph(title, sectionFont);
@@ -296,6 +450,7 @@ public class PdfReservationService {
         return switch (statut) {
             case "en_attente" -> "En attente";
             case "confirmee" -> "Confirmée";
+            case "refusee" -> "Refusée";
             case "terminee" -> "Terminée";
             case "annulee" -> "Annulée";
             default -> statut;

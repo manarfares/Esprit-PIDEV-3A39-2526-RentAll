@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="tn.piapp.ui.AdminController"
+            fx:id="rootPane"
             prefWidth="1100" prefHeight="700"
             style="-fx-background-color: #f8f9fa;">
 
-    <!-- ═══════════ HEADER ═══════════ -->
     <top>
         <HBox style="-fx-background-color: linear-gradient(to right, #6C63FF, #9B59B6);
                      -fx-padding: 15 25 15 25;"
@@ -28,21 +27,42 @@
             <Label fx:id="lblWelcome"
                    style="-fx-font-size: 13px; -fx-text-fill: white;"/>
 
-            <Button text="🔧 Tools &amp; Services"
+            <Button text="Utilisateurs"
+                    onAction="#handleShowUsers"
+                    style="-fx-background-color: rgba(255,255,255,0.2);
+                           -fx-text-fill: white; -fx-font-size: 12px;
+                           -fx-background-radius: 20; -fx-cursor: hand;
+                           -fx-padding: 8 16 8 16;"/>
+
+            <Button text="Tools &amp; Services"
                     onAction="#handleOpenToolsServices"
                     style="-fx-background-color: rgba(255,255,255,0.2);
                            -fx-text-fill: white; -fx-font-size: 12px;
                            -fx-background-radius: 20; -fx-cursor: hand;
                            -fx-padding: 8 16 8 16;"/>
 
-            <Button text="🗂️ Categories"
+            <Button text="Réservations"
+                    onAction="#handleOpenReservations"
+                    style="-fx-background-color: rgba(255,255,255,0.2);
+                           -fx-text-fill: white; -fx-font-size: 12px;
+                           -fx-background-radius: 20; -fx-cursor: hand;
+                           -fx-padding: 8 16 8 16;"/>
+
+            <Button text="Avis"
+                    onAction="#handleOpenAvis"
+                    style="-fx-background-color: rgba(255,255,255,0.2);
+                           -fx-text-fill: white; -fx-font-size: 12px;
+                           -fx-background-radius: 20; -fx-cursor: hand;
+                           -fx-padding: 8 16 8 16;"/>
+
+            <Button text="Catégories"
                     onAction="#handleManageCategories"
                     style="-fx-background-color: rgba(255,255,255,0.2);
                            -fx-text-fill: white; -fx-font-size: 12px;
                            -fx-background-radius: 20; -fx-cursor: hand;
                            -fx-padding: 8 16 8 16;"/>
 
-            <Button text="🚪 Déconnexion"
+            <Button text="Déconnexion"
                     onAction="#handleLogout"
                     style="-fx-background-color: rgba(255,255,255,0.2);
                            -fx-text-fill: white; -fx-font-size: 12px;
@@ -51,11 +71,9 @@
         </HBox>
     </top>
 
-    <!-- ═══════════ CONTENU ═══════════ -->
     <center>
-        <VBox spacing="20" style="-fx-padding: 25;">
+        <VBox fx:id="usersContent" spacing="20" style="-fx-padding: 25;">
 
-            <!-- Titre + Filtre -->
             <HBox alignment="CENTER_LEFT" spacing="15">
                 <VBox>
                     <Label text="Gestion des Utilisateurs"
@@ -74,7 +92,6 @@
                                  -fx-border-radius: 8; -fx-background-radius: 8;"/>
             </HBox>
 
-            <!-- Table -->
             <TableView fx:id="tableUsers"
                        VBox.vgrow="ALWAYS"
                        style="-fx-background-color: white;
@@ -83,16 +100,11 @@
                               -fx-background-radius: 10;
                               -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 2);">
                 <columns>
-                    <TableColumn fx:id="colId"
-                                 text="ID" prefWidth="55"/>
-                    <TableColumn fx:id="colUsername"
-                                 text="Username" prefWidth="160"/>
-                    <TableColumn fx:id="colEmail"
-                                 text="Email" prefWidth="220"/>
-                    <TableColumn fx:id="colRole"
-                                 text="Rôle" prefWidth="170"/>
-                    <TableColumn fx:id="colStatus"
-                                 text="Statut" prefWidth="110"/>
+                    <TableColumn fx:id="colId" text="ID" prefWidth="55"/>
+                    <TableColumn fx:id="colUsername" text="Username" prefWidth="160"/>
+                    <TableColumn fx:id="colEmail" text="Email" prefWidth="220"/>
+                    <TableColumn fx:id="colRole" text="Rôle" prefWidth="170"/>
+                    <TableColumn fx:id="colStatus" text="Statut" prefWidth="110"/>
                 </columns>
                 <placeholder>
                     <Label text="Aucun utilisateur trouvé"
@@ -100,15 +112,10 @@
                 </placeholder>
             </TableView>
 
-            <!-- Message -->
-            <Label fx:id="lblMessage" text=""
-                   style="-fx-font-size: 12px;"/>
+            <Label fx:id="lblMessage" text="" style="-fx-font-size: 12px;"/>
 
-            <!-- Boutons actions -->
             <HBox spacing="10" alignment="CENTER_LEFT">
-
-                <!-- CRUD -->
-                <Button text="➕ Ajouter"
+                <Button text="+ Ajouter"
                         onAction="#handleAjouter"
                         style="-fx-background-color: #6C63FF;
                                -fx-text-fill: white; -fx-font-size: 12px;
@@ -116,7 +123,7 @@
                                -fx-pref-height: 38px; -fx-pref-width: 110px;
                                -fx-background-radius: 19; -fx-cursor: hand;"/>
 
-                <Button text="✏️ Modifier"
+                <Button text="Modifier"
                         onAction="#handleModifier"
                         style="-fx-background-color: #f39c12;
                                -fx-text-fill: white; -fx-font-size: 12px;
@@ -124,7 +131,7 @@
                                -fx-pref-height: 38px; -fx-pref-width: 110px;
                                -fx-background-radius: 19; -fx-cursor: hand;"/>
 
-                <Button text="🗑️ Supprimer"
+                <Button text="Supprimer"
                         onAction="#handleSupprimer"
                         style="-fx-background-color: #e74c3c;
                                -fx-text-fill: white; -fx-font-size: 12px;
@@ -135,8 +142,7 @@
                 <Separator orientation="VERTICAL"
                            style="-fx-padding: 0 5 0 5;"/>
 
-                <!-- Demandes Host -->
-                <Button text="✅ Valider Host"
+                <Button text="Valider Host"
                         onAction="#handleValiderHost"
                         style="-fx-background-color: #27ae60;
                                -fx-text-fill: white; -fx-font-size: 12px;
@@ -144,7 +150,7 @@
                                -fx-pref-height: 38px; -fx-pref-width: 120px;
                                -fx-background-radius: 19; -fx-cursor: hand;"/>
 
-                <Button text="❌ Refuser Host"
+                <Button text="Refuser Host"
                         onAction="#handleRefuserHost"
                         style="-fx-background-color: #e67e22;
                                -fx-text-fill: white; -fx-font-size: 12px;
@@ -155,8 +161,7 @@
                 <Separator orientation="VERTICAL"
                            style="-fx-padding: 0 5 0 5;"/>
 
-                <!-- Statut -->
-                <Button text="✅ Activer"
+                <Button text="Activer"
                         onAction="#handleActiver"
                         style="-fx-background-color: #16a085;
                                -fx-text-fill: white; -fx-font-size: 12px;
@@ -164,17 +169,14 @@
                                -fx-pref-height: 38px; -fx-pref-width: 100px;
                                -fx-background-radius: 19; -fx-cursor: hand;"/>
 
-                <Button text="🔨 Bannir"
+                <Button text="Bannir"
                         onAction="#handleBannir"
                         style="-fx-background-color: #c0392b;
                                -fx-text-fill: white; -fx-font-size: 12px;
                                -fx-font-weight: bold;
                                -fx-pref-height: 38px; -fx-pref-width: 100px;
                                -fx-background-radius: 19; -fx-cursor: hand;"/>
-
             </HBox>
-
         </VBox>
     </center>
-
 </BorderPane>

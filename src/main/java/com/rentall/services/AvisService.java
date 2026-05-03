@@ -2,10 +2,15 @@ package com.rentall.services;
 
 import com.rentall.config.DatabaseConnection;
 import com.rentall.entities.Avis;
+import com.rentall.entities.Reservation;
+import tn.piapp.model.User;
+import tn.piapp.util.SessionManager;
 
+import java.text.Normalizer;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Classe AvisService
@@ -24,12 +29,17 @@ import java.util.List;
 public class AvisService implements IAvisService {
 
     private Connection connection = DatabaseConnection.getConnection();
+    private final ReservationService reservationService = new ReservationService();
 
     // =========================================================
     // CREATE — Ajouter un avis
     // =========================================================
     @Override
     public void ajouter(Avis avis) throws SQLException {
+        if (!peutAjouterAvis(avis, currentUser())) {
+            throw new SQLException("Ajout avis refusé : la réservation doit être terminée, vous appartenir, et ne pas avoir déjà un avis.");
+        }
+
         String sql = "INSERT INTO avis (reservation_id, note, commentaire, date_creation) " +
                      "VALUES (?, ?, ?, ?)";
         PreparedStatement ps = connection.prepareStatement(sql);
@@ -46,6 +56,11 @@ public class AvisService implements IAvisService {
     // =========================================================
     @Override
     public void modifier(Avis avis) {
+        if (!peutModifierAvis(avis, currentUser())) {
+            System.out.println("Modification avis refusée : droits insuffisants.");
+            return;
+        }
+
         String sql = "UPDATE avis SET reservation_id=?, note=?, commentaire=?, date_creation=? " +
                      "WHERE id=?";
         try {
@@ -70,6 +85,11 @@ public class AvisService implements IAvisService {
     // =========================================================
     @Override
     public void supprimer(int id) {
+        if (!peutSupprimerAvis(id, currentUser())) {
+            System.out.println("Suppression avis refusée : droits insuffisants.");
+            return;
+        }
+
         String sql = "DELETE FROM avis WHERE id=?";
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -135,5 +155,106 @@ public class AvisService implements IAvisService {
             System.out.println("❌ Erreur recherche avis : " + e.getMessage());
         }
         return null;
+    }
+
+    public boolean peutAjouterAvis(Avis avis, User user) {
+        if (avis == null) {
+            return false;
+        }
+        if (user == null) {
+            return !avisExistePourReservation(avis.getReservationId());
+        }
+        if (isAdmin(user) || isHost(user)) {
+            return false;
+        }
+        if (!isGuest(user)) {
+            return false;
+        }
+        Reservation reservation = reservationService.afficherParId(avis.getReservationId());
+        return reservation != null
+                && reservationService.reservationAppartientAuLocataire(reservation.getId(), user)
+                && "terminee".equals(normalizeStatut(reservation.getStatut()))
+                && !avisExistePourReservation(reservation.getId());
+    }
+
+    public boolean peutModifierAvis(Avis avis, User user) {
+        if (avis == null) {
+            return false;
+        }
+        if (user == null) {
+            return true;
+        }
+        if (isAdmin(user) || isHost(user)) {
+            return false;
+        }
+        return isGuest(user) && avisAppartientAuLocataire(avis, user);
+    }
+
+    public boolean peutSupprimerAvis(int avisId, User user) {
+        Avis avis = afficherParId(avisId);
+        if (avis == null) {
+            return false;
+        }
+        if (user == null || isAdmin(user)) {
+            return true;
+        }
+        return isGuest(user) && avisAppartientAuLocataire(avis, user);
+    }
+
+    public boolean peutVoirAvis(Avis avis, User user) {
+        if (avis == null) {
+            return false;
+        }
+        return reservationService.peutVoirReservation(avis.getReservationId(), user);
+    }
+
+    public boolean avisExistePourReservation(int reservationId) {
+        String sql = "SELECT COUNT(*) FROM avis WHERE reservation_id=?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, reservationId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Erreur verification avis existant : " + e.getMessage());
+            return true;
+        }
+    }
+
+    private boolean avisAppartientAuLocataire(Avis avis, User user) {
+        return user != null
+                && reservationService.reservationAppartientAuLocataire(avis.getReservationId(), user);
+    }
+
+    private User currentUser() {
+        return SessionManager.getInstance().getCurrentUser();
+    }
+
+    private boolean isAdmin(User user) {
+        return user != null && "ROLE_ADMIN".equals(user.getRole());
+    }
+
+    private boolean isHost(User user) {
+        return user != null && "ROLE_HOST".equals(user.getRole());
+    }
+
+    private boolean isGuest(User user) {
+        if (user == null || user.getRole() == null) {
+            return false;
+        }
+        String role = user.getRole();
+        return "ROLE_GUEST".equals(role)
+                || "ROLE_USER".equals(role)
+                || "ROLE_HOST_PENDING".equals(role);
+    }
+
+    private static String normalizeStatut(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String normalized = Normalizer.normalize(
+                value.trim().toLowerCase(Locale.ROOT),
+                Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}", "");
     }
 }

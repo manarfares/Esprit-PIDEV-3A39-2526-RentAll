@@ -10,14 +10,14 @@ import java.sql.*;
 public class ReadDatabaseStructure {
 
     public static void main(String[] args) {
-        String url      = "jdbc:mysql://localhost:3306/smart_rental_platform";
+        String url      = "jdbc:mysql://localhost:3306/pidev_amine";
         String user     = "root";
         String password = "";
 
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             Connection conn = DriverManager.getConnection(url, user, password);
-            System.out.println("✅ Connecté à smart_rental_platform\n");
+            System.out.println("✅ Connecté à pidev_amine\n");
 
             // Liste toutes les tables
             DatabaseMetaData meta = conn.getMetaData();

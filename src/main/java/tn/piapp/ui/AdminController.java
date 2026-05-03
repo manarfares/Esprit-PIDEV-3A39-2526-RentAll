@@ -4,16 +4,22 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import tn.piapp.model.User;
 import tn.piapp.dao.ServiceUser;
+import tn.piapp.util.SessionManager;
 public class AdminController {
 
+    @FXML private BorderPane                  rootPane;
+    @FXML private VBox                        usersContent;
     @FXML private Label                      lblWelcome;
     @FXML private TableView<User>            tableUsers;
     @FXML private TableColumn<User, Integer> colId;
@@ -27,9 +33,12 @@ public class AdminController {
     private ServiceUser          service = new ServiceUser();
     private User                 currentUser;
     private ObservableList<User> data    = FXCollections.observableArrayList();
+    private Node                 defaultUsersContent;
 
     @FXML
     public void initialize() {
+        defaultUsersContent = usersContent;
+
         colId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colUsername.setCellValueFactory(new PropertyValueFactory<>("name"));
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
@@ -48,8 +57,15 @@ public class AdminController {
 
     public void setCurrentUser(User user) {
         this.currentUser = user;
+        SessionManager.getInstance().setCurrentUser(user);
         lblWelcome.setText("👑 Bienvenue, " + user.getName());
         chargerUsers();
+    }
+
+    @FXML
+    public void handleShowUsers() {
+        rootPane.setCenter(defaultUsersContent);
+        filtrerUsers();
     }
 
     private boolean tokenValide() {
@@ -271,8 +287,19 @@ public class AdminController {
 
     // ── Déconnexion ────────────────────────────
     @FXML
+    public void handleOpenReservations() {
+        rootPane.setCenter(new IntegratedReservationView(currentUser));
+    }
+
+    @FXML
+    public void handleOpenAvis() {
+        rootPane.setCenter(new IntegratedAvisView(currentUser));
+    }
+
+    @FXML
     public void handleLogout() {        service.logout(currentUser.getId());
         currentUser.logout();
+        SessionManager.getInstance().logout();
         try {
             Parent root = FXMLLoader.load(getClass().getResource("/login.fxml"));
             Stage stage = (Stage) lblWelcome.getScene().getWindow();

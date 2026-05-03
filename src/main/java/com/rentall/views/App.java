@@ -1,6 +1,5 @@
-package com.rentall;
+package com.rentall.views;
 
-import com.rentall.views.MainFrame;
 import javax.swing.SwingUtilities;
 
 public class App {

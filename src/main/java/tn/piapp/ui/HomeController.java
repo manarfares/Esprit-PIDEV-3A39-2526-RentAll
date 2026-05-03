@@ -2,28 +2,44 @@ package tn.piapp.ui;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import tn.piapp.model.User;
 import tn.piapp.dao.ServiceUser;
+import tn.piapp.util.SessionManager;
 
 public class HomeController {
 
+    @FXML private BorderPane rootPane;
     @FXML private Label  lblUsername;
     @FXML private Label  lblRoleBadge;
     @FXML private Button btnProfil;
     @FXML private Label  lblSearchResult;
     @FXML private Button btnToolsServices;
+    @FXML private Button btnReservations;
+    @FXML private Button btnAvis;
 
     private ServiceUser service     = new ServiceUser();
     private User        currentUser;
+    private Node        staysContent;
+
+    @FXML
+    public void initialize() {
+        staysContent = rootPane.getCenter();
+    }
+
+    @FXML
+    public void handleShowStays() {
+        rootPane.setCenter(staysContent);
+    }
 
     public void setCurrentUser(User user) {
         this.currentUser = user;
+        SessionManager.getInstance().setCurrentUser(user);
 
         String initiales = user.getName().substring(0, 1).toUpperCase();
         btnProfil.setText(initiales);
@@ -97,6 +113,7 @@ public class HomeController {
     public void handleLogout() {
         service.logout(currentUser.getId());
         currentUser.logout();
+        SessionManager.getInstance().logout();
         try {
             Parent root = FXMLLoader.load(getClass().getResource("/login.fxml"));
             Stage stage = (Stage) btnProfil.getScene().getWindow();
@@ -152,5 +169,17 @@ public class HomeController {
                     + (e.getCause() != null ? "\nCause: " + e.getCause().getMessage() : ""));
             alert.showAndWait();
         }
+    }
+
+    // ── Ouvrir Réservations ────────────────
+    @FXML
+    public void handleOpenReservations() {
+        rootPane.setCenter(new IntegratedReservationView(currentUser));
+    }
+
+    // ── Ouvrir Avis ────────────────
+    @FXML
+    public void handleOpenAvis() {
+        rootPane.setCenter(new IntegratedAvisView(currentUser));
     }
 }

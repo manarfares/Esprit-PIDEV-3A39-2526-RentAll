@@ -3,6 +3,7 @@ package com.rentall.services;
 import com.rentall.dto.ReservationTableRow;
 import com.rentall.entities.Reservation;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -34,4 +35,8 @@ public interface IReservationService {
     List<ReservationTableRow> listerPourAffichageTableau();
 
     Reservation afficherParId(int id);
+
+    boolean estLogementDisponible(int logementId, LocalDateTime dateDebut, LocalDateTime dateFin);
+
+    boolean estLogementDisponible(int logementId, LocalDateTime dateDebut, LocalDateTime dateFin, Integer reservationIdAExclure);
 }

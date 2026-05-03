@@ -1,5 +1,6 @@
 package com.rentall.dto;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 /**
@@ -9,10 +10,16 @@ public final class FoyerListItem {
 
     private final int id;
     private final String libelle;
+    private final BigDecimal prixParNuit;
 
     public FoyerListItem(int id, String libelle) {
+        this(id, libelle, null);
+    }
+
+    public FoyerListItem(int id, String libelle, BigDecimal prixParNuit) {
         this.id = id;
         this.libelle = libelle != null ? libelle : "";
+        this.prixParNuit = prixParNuit;
     }
 
     public int getId() {
@@ -21,6 +28,10 @@ public final class FoyerListItem {
 
     public String getLibelle() {
         return libelle;
+    }
+
+    public BigDecimal getPrixParNuit() {
+        return prixParNuit;
     }
 
     @Override
