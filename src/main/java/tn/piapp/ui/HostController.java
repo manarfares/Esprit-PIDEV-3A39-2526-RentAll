@@ -1,27 +1,22 @@
 package org.example.controllers;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.models.User;
 import org.example.services.ServiceUser;
 import org.example.utils.IdleSessionManager;
-import tn.piapp.model.User;
-import tn.piapp.dao.ServiceUser;
 
 public class HostController {
 
-    @FXML private Label         lblWelcome;
-    @FXML private Label         lblRole;
-    @FXML private Label         lblStatus;
-    @FXML private TextField     tfUsername;
-    @FXML private TextField     tfEmail;
-    @FXML private TextField     tfPhone;
-    @FXML private PasswordField pfPassword;
-    @FXML private Label         lblMessage;
+    @FXML private Label lblWelcome;
+    @FXML private Label lblRole;
+    @FXML private Label lblStatus;
 
     private ServiceUser service     = new ServiceUser();
     private User        currentUser;
@@ -31,9 +26,6 @@ public class HostController {
 
         lblWelcome.setText("🏠 Bienvenue, " + user.getUsername());
         lblStatus.setText("Statut : " + user.getStatus());
-        tfUsername.setText(user.getName());
-        tfEmail.setText(user.getEmail());
-        tfPhone.setText(user.getPhone() != null ? user.getPhone() : "");
 
         // Badge vérifié / non vérifié
         if (user.getRole().equals("ROLE_HOST_PENDING")) {
@@ -51,17 +43,17 @@ public class HostController {
                             "-fx-padding: 3 10 3 10; -fx-background-radius: 10;"
             );
         }
+
+        // Active la déconnexion automatique sur cette scene
+        Platform.runLater(() -> {
+            Scene scene = lblWelcome.getScene();
+            if (scene != null) {
+                IdleSessionManager.attachToScene(scene, user);
+            }
+        });
     }
 
-    private boolean tokenValide() {
-        if (!service.verifierToken(currentUser.getId(),
-                currentUser.getSessionToken())) {
-            showMessage("❌ Session expirée. Reconnectez-vous.", false);
-            return false;
-        }
-        return true;
-    }
-
+    // ── Ouvrir fenêtre Modifier ────────────────
     @FXML
     public void handleOuvrirModifier() {
         try {
@@ -77,46 +69,17 @@ public class HostController {
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
-    public void handleUpdate() {
-        if (!tokenValide()) return;
-
-        String name = tfUsername.getText().trim();
-        String email    = tfEmail.getText().trim();
-        String phone    = tfPhone.getText().trim();
-        String password = pfPassword.getText().trim();
-
-        if (name.isEmpty() || email.isEmpty()) {
-            showMessage("⚠️ Name et Email sont obligatoires.", false);
-            return;
         }
-
-        currentUser.setName(name);
-        currentUser.setEmail(email);
-        currentUser.setPhone(phone.isEmpty() ? null : phone);
-
-        if (!password.isEmpty()) {
-            if (password.length() < 6) {
-                showMessage("⚠️ Mot de passe trop court (min 6).", false);
-                return;
-            }
-            currentUser.setPassword(password);
-        }
-
-        service.modifier(currentUser);
-        showMessage("✅ Profil mis à jour !", true);
-        lblWelcome.setText("🏠 Bienvenue, " + currentUser.getName());
     }
 
     @FXML
     public void handleGererAnnonces() {
-        if (!tokenValide()) return;
-        showMessage("📋 Gestion des annonces — bientôt disponible !", true);
+        System.out.println("📋 Gestion des annonces — bientôt disponible !");
     }
 
     @FXML
     public void handleVoirReservations() {
-        if (!tokenValide()) return;
-        showMessage("📅 Réservations — bientôt disponible !", true);
+        System.out.println("📅 Réservations — bientôt disponible !");
     }
 
     // ── Retour Accueil ─────────────────────────
@@ -140,6 +103,7 @@ public class HostController {
     // ── Déconnexion ────────────────────────────
     @FXML
     public void handleLogout() {
+        IdleSessionManager.detachCurrent();
         service.logout(currentUser.getId());
         currentUser.logout();
         try {
@@ -151,12 +115,5 @@ public class HostController {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void showMessage(String msg, boolean success) {
-        lblMessage.setStyle(success
-                ? "-fx-text-fill: #27ae60; -fx-font-size: 12px;"
-                : "-fx-text-fill: #e74c3c; -fx-font-size: 12px;");
-        lblMessage.setText(msg);
     }
 }

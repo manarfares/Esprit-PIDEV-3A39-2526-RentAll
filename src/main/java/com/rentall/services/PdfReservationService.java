@@ -31,14 +31,14 @@ public class PdfReservationService {
     private static final String FACTURES_DIR = "factures";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter FILE_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-    
+
     private final Connection connection;
-    
+
     public PdfReservationService() {
         this.connection = DatabaseConnection.getConnection();
         ensureFacturesDirectoryExists();
     }
-    
+
     /**
      * Génère un PDF de facture pour une réservation.
      * @param reservation La réservation à facturer
@@ -49,30 +49,30 @@ public class PdfReservationService {
             NotificationService.showError("Erreur PDF", "Réservation invalide.");
             return null;
         }
-        
+
         String fileName = generateFileName(reservation);
         String filePath = FACTURES_DIR + File.separator + fileName;
-        
+
         try {
             Document document = new Document(PageSize.A4, 50, 50, 50, 50);
             PdfWriter.getInstance(document, new FileOutputStream(filePath));
             document.open();
-            
+
             addHeader(document);
             addReservationDetails(document, reservation);
             addFooter(document);
-            
+
             document.close();
-            
+
             NotificationService.showSuccess("PDF généré", "Facture créée : " + filePath);
             return filePath;
-            
+
         } catch (Exception e) {
             NotificationService.showError("Erreur PDF", "Échec de la génération : " + e.getMessage());
             return null;
         }
     }
-    
+
     /**
      * Génère un PDF après un ajout réussi de réservation.
      * Récupère les informations complètes depuis la base de données.
@@ -187,19 +187,19 @@ public class PdfReservationService {
         }
         return genererFacture(reservation);
     }
-    
+
     private void ensureFacturesDirectoryExists() {
         File dir = new File(FACTURES_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
         }
     }
-    
+
     private String generateFileName(Reservation reservation) {
         String timestamp = LocalDateTime.now().format(FILE_DATE_FORMATTER);
         return "facture_reservation_" + reservation.getId() + "_" + timestamp + ".pdf";
     }
-    
+
     private void addHeader(Document document) throws DocumentException {
         // Titre principal
         Font titleFont = new Font(Font.HELVETICA, 24, Font.BOLD, new Color(34, 139, 34));
@@ -207,22 +207,22 @@ public class PdfReservationService {
         title.setAlignment(Element.ALIGN_CENTER);
         title.setSpacingAfter(5);
         document.add(title);
-        
+
         // Sous-titre
         Font subtitleFont = new Font(Font.HELVETICA, 14, Font.NORMAL, Color.GRAY);
         Paragraph subtitle = new Paragraph("Plateforme de location de logements", subtitleFont);
         subtitle.setAlignment(Element.ALIGN_CENTER);
         subtitle.setSpacingAfter(20);
         document.add(subtitle);
-        
+
         // Ligne de séparation
         Paragraph separator = new Paragraph("────────────────────────────");
         separator.setAlignment(Element.ALIGN_CENTER);
         separator.setSpacingAfter(15);
         document.add(separator);
-        
+
         document.add(Chunk.NEWLINE);
-        
+
         // Titre facture
         Font invoiceFont = new Font(Font.HELVETICA, 18, Font.BOLD, Color.BLACK);
         Paragraph invoiceTitle = new Paragraph("FACTURE DE RÉSERVATION", invoiceFont);
@@ -230,24 +230,24 @@ public class PdfReservationService {
         invoiceTitle.setSpacingAfter(20);
         document.add(invoiceTitle);
     }
-    
+
     private void addReservationDetails(Document document, Reservation reservation) throws DocumentException {
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingBefore(10);
         table.setSpacingAfter(20);
-        
+
         // Récupérer les informations du logement et du locataire
         String[] logementInfo = getLogementInfo(reservation.getFoyerId());
         String[] locataireInfo = getLocataireInfo(reservation.getLocataireId());
-        
+
         // Contenu de la table
         addTableRow(table, "Référence réservation :", "RES-" + reservation.getId(), true);
         addTableRow(table, "Date de génération :", LocalDateTime.now().format(DATE_FORMATTER), false);
-        
+
         document.add(table);
         document.add(Chunk.NEWLINE);
-        
+
         // Section Locataire
         addSectionTitle(document, "Informations locataire");
         PdfPTable locataireTable = new PdfPTable(2);
@@ -260,7 +260,7 @@ public class PdfReservationService {
         }
         document.add(locataireTable);
         document.add(Chunk.NEWLINE);
-        
+
         // Section Logement
         addSectionTitle(document, "Informations logement");
         PdfPTable logementTable = new PdfPTable(2);
@@ -273,7 +273,7 @@ public class PdfReservationService {
         }
         document.add(logementTable);
         document.add(Chunk.NEWLINE);
-        
+
         // Section Séjour
         addSectionTitle(document, "Détails du séjour");
         PdfPTable sejourTable = new PdfPTable(2);
@@ -284,18 +284,18 @@ public class PdfReservationService {
         addTableRow(sejourTable, "Statut :", formatStatut(reservation.getStatut()), false);
         document.add(sejourTable);
         document.add(Chunk.NEWLINE);
-        
+
         // Section Tarification
         addSectionTitle(document, "Tarification");
         PdfPTable tarifTable = new PdfPTable(2);
         tarifTable.setWidthPercentage(100);
-        
+
         BigDecimal montant = reservation.getMontantTotal();
         addTableRow(tarifTable, "Montant total :", (montant != null ? montant + " EUR" : "—"), true);
-        
+
         document.add(tarifTable);
     }
-    
+
     private void addReservationSummaryDetails(Document document, ReservationTableRow row) throws DocumentException {
         PdfPTable metaTable = new PdfPTable(2);
         metaTable.setWidthPercentage(100);
@@ -406,45 +406,45 @@ public class PdfReservationService {
         section.setSpacingAfter(10);
         document.add(section);
     }
-    
+
     private void addTableRow(PdfPTable table, String label, String value, boolean highlight) {
         Font labelFont = new Font(Font.HELVETICA, 11, Font.BOLD, Color.DARK_GRAY);
         Font valueFont = new Font(Font.HELVETICA, 11, Font.NORMAL, Color.BLACK);
-        
+
         PdfPCell labelCell = new PdfPCell(new Phrase(label, labelFont));
         labelCell.setBorder(Rectangle.NO_BORDER);
         labelCell.setPadding(5);
         labelCell.setBackgroundColor(new Color(248, 249, 250));
-        
+
         PdfPCell valueCell = new PdfPCell(new Phrase(value != null ? value : "—", valueFont));
         valueCell.setBorder(Rectangle.NO_BORDER);
         valueCell.setPadding(5);
         if (highlight) {
             valueCell.setBackgroundColor(new Color(240, 253, 244));
         }
-        
+
         table.addCell(labelCell);
         table.addCell(valueCell);
     }
-    
+
     private void addFooter(Document document) throws DocumentException {
         document.add(Chunk.NEWLINE);
         Paragraph separator = new Paragraph("────────────────────────────");
         separator.setAlignment(Element.ALIGN_CENTER);
         separator.setSpacingAfter(15);
         document.add(separator);
-        
+
         Font footerFont = new Font(Font.HELVETICA, 9, Font.ITALIC, Color.GRAY);
         Paragraph footer = new Paragraph(
-            "Merci d'avoir choisi RentAll pour votre séjour. " +
-            "Pour toute question, contactez-nous à contact@rentall.com",
-            footerFont
+                "Merci d'avoir choisi RentAll pour votre séjour. " +
+                        "Pour toute question, contactez-nous à contact@rentall.com",
+                footerFont
         );
         footer.setAlignment(Element.ALIGN_CENTER);
         footer.setSpacingBefore(20);
         document.add(footer);
     }
-    
+
     private String formatStatut(String statut) {
         if (statut == null) return "—";
         return switch (statut) {
@@ -456,7 +456,7 @@ public class PdfReservationService {
             default -> statut;
         };
     }
-    
+
     private Reservation getReservationComplete(int id) {
         String sql = "SELECT * FROM reservation WHERE id = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -464,15 +464,15 @@ public class PdfReservationService {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 return new Reservation(
-                    rs.getInt("id"),
-                    rs.getInt("logement_id"),
-                    rs.getInt("locataire_id"),
-                    rs.getTimestamp("date_debut").toLocalDateTime(),
-                    rs.getTimestamp("date_fin").toLocalDateTime(),
-                    rs.getBigDecimal("montant_total"),
-                    rs.getString("statut"),
-                    rs.getTimestamp("date_creation").toLocalDateTime(),
-                    rs.getInt("nombre_personnes")
+                        rs.getInt("id"),
+                        rs.getInt("logement_id"),
+                        rs.getInt("locataire_id"),
+                        rs.getTimestamp("date_debut").toLocalDateTime(),
+                        rs.getTimestamp("date_fin").toLocalDateTime(),
+                        rs.getBigDecimal("montant_total"),
+                        rs.getString("statut"),
+                        rs.getTimestamp("date_creation").toLocalDateTime(),
+                        rs.getInt("nombre_personnes")
                 );
             }
         } catch (SQLException e) {
@@ -480,7 +480,7 @@ public class PdfReservationService {
         }
         return null;
     }
-    
+
     private String[] getLogementInfo(int logementId) {
         String[] info = new String[2]; // [0] = libellé, [1] = adresse
         String sql = "SELECT l.titre, l.adresse FROM logement l WHERE l.id = ?";
@@ -507,7 +507,7 @@ public class PdfReservationService {
         }
         return info;
     }
-    
+
     private String[] getLocataireInfo(int locataireId) {
         String[] info = new String[2]; // [0] = nom complet, [1] = email
         String sql = "SELECT u.nom, u.prenom, u.email FROM utilisateur u WHERE u.id = ?";

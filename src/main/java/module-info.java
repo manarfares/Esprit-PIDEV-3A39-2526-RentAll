@@ -6,7 +6,7 @@ module tn.piapp {
     requires java.net.http;
     requires jbcrypt;
     requires java.desktop;  // Pour Swing/AWT (com.rentall.views)
-    requires com.github.librepdf.openpdf;  // Pour OpenPDF
+//    requires com.github.librepdf.openpdf;  // Pour OpenPDF
 
     opens tn.piapp.ui to javafx.fxml;
     opens tn.piapp.model to javafx.base;

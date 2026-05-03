@@ -6,7 +6,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.PieChart;
@@ -14,9 +13,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.models.User;
 import org.example.services.PdfReportService;
@@ -29,9 +25,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-import tn.piapp.model.User;
-import tn.piapp.dao.ServiceUser;
-import tn.piapp.util.SessionManager;
 public class AdminController {
 
     @FXML private Label lblWelcome;
@@ -59,22 +52,7 @@ public class AdminController {
     @FXML private PieChart pieChartRoles;
 
     private final PdfReportService pdfService = new PdfReportService();
-    @FXML private BorderPane                  rootPane;
-    @FXML private VBox                        usersContent;
-    @FXML private Label                      lblWelcome;
-    @FXML private TableView<User>            tableUsers;
-    @FXML private TableColumn<User, Integer> colId;
-    @FXML private TableColumn<User, String>  colUsername;
-    @FXML private TableColumn<User, String>  colEmail;
-    @FXML private TableColumn<User, String>  colRole;
-    @FXML private TableColumn<User, String>  colStatus;
-    @FXML private Label                      lblMessage;
-    @FXML private ComboBox<String>           cbFilter;
 
-    private ServiceUser          service = new ServiceUser();
-    private User                 currentUser;
-    private ObservableList<User> data    = FXCollections.observableArrayList();
-    private Node                 defaultUsersContent;
     private ServiceUser service = new ServiceUser();
     private User currentUser;
     private ObservableList<User> masterData = FXCollections.observableArrayList();
@@ -88,10 +66,6 @@ public class AdminController {
 
     @FXML
     public void initialize() {
-        defaultUsersContent = usersContent;
-
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colUsername.setCellValueFactory(new PropertyValueFactory<>("name"));
         // Setup table columns
         colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
@@ -184,8 +158,6 @@ public class AdminController {
 
     public void setCurrentUser(User user) {
         this.currentUser = user;
-        SessionManager.getInstance().setCurrentUser(user);
-        lblWelcome.setText("👑 Bienvenue, " + user.getName());
         // Texte court adapté à la sidebar
         lblWelcome.setText("👑 " + user.getUsername());
         chargerUsers();
@@ -294,12 +266,6 @@ public class AdminController {
         }
     }
 
-    @FXML
-    public void handleShowUsers() {
-        rootPane.setCenter(defaultUsersContent);
-        filtrerUsers();
-    }
-
     private boolean tokenValide() {
         if (!service.verifierToken(currentUser.getId(),
                 currentUser.getSessionToken())) {
@@ -370,7 +336,6 @@ public class AdminController {
                 filteredSize > 1 ? "s" : ""));
     }
 
-    // ── Ouvrir fenêtre Ajouter ─────────────────
     @FXML
     public void handleFirstPage() {
         if (totalPages > 0 && currentPage != 0) {
@@ -379,7 +344,6 @@ public class AdminController {
         }
     }
 
-    // ── Ouvrir fenêtre Modifier ────────────────
     @FXML
     public void handlePreviousPage() {
         if (currentPage > 0) {
@@ -417,13 +381,9 @@ public class AdminController {
             showMessage("⚠️ Cet utilisateur n'a pas de demande Host.", false);
             return;
         }
-        // Passage de ROLE_HOST_PENDING → ROLE_HOST
         service.updateRole(selected.getId(), "ROLE_HOST");
         showMessage("✅ " + selected.getUsername() + " est maintenant Host ✅", true);
         refreshAfterAction();
-        showMessage("✅ " + selected.getName() +
-                " est maintenant Host ✅", true);
-        filtrerUsers();
     }
 
     // ── Refuser Host ───────────────────────────
@@ -440,8 +400,6 @@ public class AdminController {
             return;
         }
         service.updateRole(selected.getId(), "ROLE_GUEST");
-        showMessage("❌ Demande refusée → " + selected.getName(), false);
-        filtrerUsers();
         showMessage("❌ Demande refusée → " + selected.getUsername(), false);
         refreshAfterAction();
     }
@@ -462,8 +420,6 @@ public class AdminController {
         service.updateStatus(selected.getId(), "BANNED");
         showMessage("🔨 Utilisateur banni → " + selected.getUsername(), false);
         refreshAfterAction();
-        showMessage("🔨 Utilisateur banni → " + selected.getName(), false);
-        filtrerUsers();
     }
 
     // ── Activer ────────────────────────────────
@@ -487,46 +443,8 @@ public class AdminController {
     private void refreshAfterAction() {
         chargerUsers();
         currentPage = 0;
-        showMessage("✅ Utilisateur activé → " + selected.getName(), true);
         filtrerUsers();
         chargerStatistiques();
-    }
-
-    // ── Categories ─────────────────────────────
-    @FXML
-    public void handleManageCategories() {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/tn/piapp/ui/category_admin.fxml"));
-            Parent root = loader.load();
-            Stage stage = new Stage();
-            stage.setTitle("🗂️ Manage Categories");
-            stage.setScene(new Scene(root));
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.show();
-        } catch (Exception e) {
-            showMessage("❌ Erreur : " + e.getMessage(), false);
-            e.printStackTrace();
-        }
-    }
-
-    // ── Tools & Services ───────────────────────
-    @FXML
-    public void handleOpenToolsServices() {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/tn/piapp/ui/main.fxml"));
-            Parent root = loader.load();
-            MainController ctrl = loader.getController();
-            ctrl.setCurrentUser(currentUser);
-            Stage stage = (Stage) lblWelcome.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setMaximized(true);
-            stage.show();
-        } catch (Exception e) {
-            e.printStackTrace();
-            showMessage("❌ Erreur ouverture Tools & Services : " + e.getMessage(), false);
-        }
     }
 
     // ── Déconnexion ────────────────────────────
@@ -534,19 +452,7 @@ public class AdminController {
     public void handleLogout() {
         IdleSessionManager.detachCurrent();
         service.logout(currentUser.getId());
-    public void handleOpenReservations() {
-        rootPane.setCenter(new IntegratedReservationView(currentUser));
-    }
-
-    @FXML
-    public void handleOpenAvis() {
-        rootPane.setCenter(new IntegratedAvisView(currentUser));
-    }
-
-    @FXML
-    public void handleLogout() {        service.logout(currentUser.getId());
         currentUser.logout();
-        SessionManager.getInstance().logout();
         try {
             Parent root = FXMLLoader.load(getClass().getResource("/login.fxml"));
             Stage stage = (Stage) lblWelcome.getScene().getWindow();
