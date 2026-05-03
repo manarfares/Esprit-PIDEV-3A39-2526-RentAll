@@ -1,0 +1,292 @@
+package tn.piapp.dao;
+
+import tn.piapp.db.DbConnection;
+import tn.piapp.model.Tool;
+
+import java.math.BigDecimal;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class ToolDao {
+
+    private static final String FIND_ALL =
+            "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM tool";
+
+    private static final String FIND_ALL_ACTIVE =
+            "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM tool WHERE is_active = 1";
+
+    private static final String FIND_BY_HOST =
+            "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude FROM tool WHERE host_id = ?";
+
+    private static final String INSERT =
+            "INSERT INTO tool (name, description, price_per_day, stock_quantity, location, " +
+            "is_active, created_at, updated_at, host_id, image_name, category_id, latitude, longitude) " +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+    private static final String UPDATE =
+            "UPDATE tool SET name=?, description=?, price_per_day=?, stock_quantity=?, " +
+            "location=?, is_active=?, updated_at=?, image_name=?, category_id=?, " +
+            "latitude=?, longitude=? WHERE id=?";
+
+    private static final String DELETE =
+            "DELETE FROM tool WHERE id=?";
+
+    private static final String SET_ACTIVE =
+            "UPDATE tool SET is_active=? WHERE id=?";
+
+    private static final String PRICES_BY_CATEGORY =
+            "SELECT price_per_day FROM tool WHERE category_id = ? AND is_active = 1";
+
+    private static final String COUNT_PENDING_BY_HOST =
+            "SELECT COUNT(*) FROM tool WHERE host_id = ? AND is_active = 0";
+
+    private static final String RESOLVE_HOST =
+            "SELECT MIN(id) FROM user";
+
+    public List<Tool> findAll() throws SQLException {
+        return query(FIND_ALL, null);
+    }
+
+    /** Returns only active (approved) tools — used by Guest/ROLE_USER view. */
+    public List<Tool> findAllActive() throws SQLException {
+        return query(FIND_ALL_ACTIVE, null);
+    }
+
+    /** Returns all tools owned by the given host — used by Host view. */
+    public List<Tool> findByHostId(int hostId) throws SQLException {
+        return query(FIND_BY_HOST, hostId);
+    }
+
+    private List<Tool> query(String sql, Integer hostIdParam) throws SQLException {
+        List<Tool> list = new ArrayList<>();
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostIdParam != null) ps.setInt(1, hostIdParam);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Tool t = new Tool();
+                    t.setId(rs.getInt("id"));
+                    t.setName(rs.getString("name"));
+                    t.setDescription(rs.getString("description"));
+                    t.setPricePerDay(rs.getBigDecimal("price_per_day"));
+                    t.setStockQuantity(rs.getInt("stock_quantity"));
+                    t.setLocation(rs.getString("location"));
+                    t.setActive(rs.getInt("is_active") != 0);
+                    t.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    t.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    t.setHostId(rs.getInt("host_id"));
+                    t.setImageName(rs.getString("image_name"));
+                    t.setCategoryId(rs.getObject("category_id", Integer.class));
+                    t.setLatitude(rs.getObject("latitude", Double.class));
+                    t.setLongitude(rs.getObject("longitude", Double.class));
+                    list.add(t);
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Inserts a new tool.
+     * @param t           the tool to insert (hostId must already be set)
+     * @param autoApprove true if the listing should be immediately active (admin-host)
+     */
+    public void insert(Tool t, boolean autoApprove) throws SQLException {
+        LocalDateTime now = LocalDateTime.now();
+        t.setCreatedAt(now);
+        t.setUpdatedAt(now);
+        t.setActive(autoApprove);
+
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(INSERT)) {
+            ps.setString(1, t.getName());
+            ps.setString(2, t.getDescription());
+            ps.setBigDecimal(3, t.getPricePerDay());
+            ps.setInt(4, t.getStockQuantity());
+            ps.setString(5, t.getLocation());
+            ps.setInt(6, autoApprove ? 1 : 0);
+            ps.setTimestamp(7, Timestamp.valueOf(t.getCreatedAt()));
+            ps.setTimestamp(8, Timestamp.valueOf(t.getUpdatedAt()));
+            ps.setInt(9, t.getHostId());
+            ps.setString(10, t.getImageName());
+            ps.setObject(11, t.getCategoryId());
+            ps.setObject(12, t.getLatitude());
+            ps.setObject(13, t.getLongitude());
+            ps.executeUpdate();
+        }
+    }
+
+    /** Legacy insert — keeps is_active = false (pending). Kept for backward compat. */
+    public void insert(Tool t) throws SQLException {
+        insert(t, false);
+    }
+
+    public void update(Tool t) throws SQLException {
+        t.setUpdatedAt(LocalDateTime.now());
+
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE)) {
+            ps.setString(1, t.getName());
+            ps.setString(2, t.getDescription());
+            ps.setBigDecimal(3, t.getPricePerDay());
+            ps.setInt(4, t.getStockQuantity());
+            ps.setString(5, t.getLocation());
+            ps.setInt(6, t.isActive() ? 1 : 0);
+            ps.setTimestamp(7, Timestamp.valueOf(t.getUpdatedAt()));
+            ps.setString(8, t.getImageName());
+            ps.setObject(9, t.getCategoryId());
+            ps.setObject(10, t.getLatitude());
+            ps.setObject(11, t.getLongitude());
+            ps.setInt(12, t.getId());
+            ps.executeUpdate();
+        }
+    }
+
+    public void delete(int id) throws SQLException {
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(DELETE)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Toggles the is_active flag for a single tool row. */
+    public void setActive(int id, boolean active) throws SQLException {
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(SET_ACTIVE)) {
+            ps.setInt(1, active ? 1 : 0);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Sets is_active for all given ids in a single statement.
+     * No-op if the list is empty.
+     */
+    public void setActiveAll(List<Integer> ids, boolean active) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "UPDATE tool SET is_active = ? WHERE id IN (" + placeholders + ")";
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, active ? 1 : 0);
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 2, ids.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Deletes all tools with the given ids in a single statement.
+     * No-op if the list is empty.
+     */
+    public void deleteAll(List<Integer> ids) throws SQLException {
+        if (ids == null || ids.isEmpty()) return;
+        String placeholders = ids.stream().map(i -> "?").collect(Collectors.joining(","));
+        String sql = "DELETE FROM tool WHERE id IN (" + placeholders + ")";
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 1, ids.get(i));
+            ps.executeUpdate();
+        }
+    }
+
+    /** Returns the count of pending (inactive) tools owned by the given host. */
+    public int countPendingByHostId(int hostId) throws SQLException {
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(COUNT_PENDING_BY_HOST)) {
+            ps.setInt(1, hostId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    /** Returns all price_per_day values for active tools in the given category. */
+    public List<BigDecimal> getPricesByCategory(int categoryId) throws SQLException {
+        List<BigDecimal> prices = new ArrayList<>();
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(PRICES_BY_CATEGORY)) {
+            ps.setInt(1, categoryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    prices.add(rs.getBigDecimal("price_per_day"));
+                }
+            }
+        }
+        return prices;
+    }
+
+    public int resolveDefaultHostId() throws SQLException {
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(RESOLVE_HOST);
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            if (rs.getObject(1) == null) {
+                throw new IllegalStateException(
+                        "No users exist in the database. Please create a host user first.");
+            }
+            return rs.getInt(1);
+        }
+    }
+
+    /**
+     * Returns up to {@code limit} active tools similar to the given one.
+     * Scored by: same category (+3), same location (+2), similar price ±30% (+1).
+     */
+    public List<Tool> findSimilar(int currentId, Integer categoryId,
+                                  String location, BigDecimal price,
+                                  int limit) throws SQLException {
+        String sql =
+            "SELECT id, name, description, price_per_day, stock_quantity, location, is_active, " +
+            "created_at, updated_at, host_id, image_name, category_id, latitude, longitude, (" +
+            "  CASE WHEN category_id = ? THEN 3 ELSE 0 END + " +
+            "  CASE WHEN location = ? THEN 2 ELSE 0 END + " +
+            "  CASE WHEN ? > 0 AND ABS(price_per_day - ?) / ? < 0.3 THEN 1 ELSE 0 END" +
+            ") AS score " +
+            "FROM tool " +
+            "WHERE id != ? AND is_active = 1 " +
+            "ORDER BY score DESC, RAND() " +
+            "LIMIT ?";
+
+        List<Tool> list = new ArrayList<>();
+        Connection conn = DbConnection.getInstance().getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            double p = price != null ? price.doubleValue() : 0.0;
+            ps.setObject(1, categoryId);
+            ps.setString(2, location);
+            ps.setDouble(3, p);
+            ps.setDouble(4, p);
+            ps.setDouble(5, p);
+            ps.setInt(6, currentId);
+            ps.setInt(7, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Tool t = new Tool();
+                    t.setId(rs.getInt("id"));
+                    t.setName(rs.getString("name"));
+                    t.setDescription(rs.getString("description"));
+                    t.setPricePerDay(rs.getBigDecimal("price_per_day"));
+                    t.setStockQuantity(rs.getInt("stock_quantity"));
+                    t.setLocation(rs.getString("location"));
+                    t.setActive(rs.getInt("is_active") != 0);
+                    t.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    t.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    t.setHostId(rs.getInt("host_id"));
+                    t.setImageName(rs.getString("image_name"));
+                    t.setCategoryId(rs.getObject("category_id", Integer.class));
+                    t.setLatitude(rs.getObject("latitude", Double.class));
+                    t.setLongitude(rs.getObject("longitude", Double.class));
+                    list.add(t);
+                }
+            }
+        }
+        return list;
+    }
+}

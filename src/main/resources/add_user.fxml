@@ -4,7 +4,7 @@
 <?import javafx.geometry.*?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controllers.AddUserController"
+      fx:controller="tn.piapp.ui.AddUserController"
       prefWidth="450" prefHeight="530"
       spacing="15"
       style="-fx-background-color: white;">

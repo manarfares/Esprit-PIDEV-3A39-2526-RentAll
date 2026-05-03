@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="tn.piapp.ui.ToolController"
+      spacing="0" style="-fx-background-color: #F6F7FB;">
+
+    <!-- Pending approval banner (visible for hosts with pending listings) -->
+    <HBox fx:id="pendingBanner" spacing="10" alignment="CENTER_LEFT"
+          visible="false" managed="false"
+          style="-fx-background-color: #fff8e1;
+                 -fx-padding: 8 20 8 20;
+                 -fx-border-color: #f39c12;
+                 -fx-border-width: 0 0 1 0;">
+        <Label text="⏳" style="-fx-font-size: 14px;"/>
+        <Label fx:id="lblPendingCount"
+               style="-fx-font-size: 12px; -fx-text-fill: #e67e22; -fx-font-weight: bold;"/>
+        <Label text="— awaiting admin approval. You'll see them here once approved."
+               style="-fx-font-size: 12px; -fx-text-fill: #e67e22;"/>
+    </HBox>
+
+    <!-- Bulk action toolbar (admin only, hidden by default) -->
+    <HBox fx:id="bulkToolbar" spacing="8" alignment="CENTER_LEFT"
+          visible="false" managed="false"
+          style="-fx-background-color: #f0eeff;
+                 -fx-padding: 8 20 8 20;
+                 -fx-border-color: #d0c8ff;
+                 -fx-border-width: 0 0 1 0;">
+        <Label fx:id="lblSelectionCount"
+               text="0 selected"
+               style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #6C63FF;"/>
+        <Separator orientation="VERTICAL" style="-fx-padding: 0 4 0 4;"/>
+        <Button fx:id="btnBulkApprove" text="Approve Selected"
+                onAction="#onBulkApprove"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+        <Button fx:id="btnBulkHide" text="Hide Selected"
+                onAction="#onBulkHide"
+                style="-fx-background-color: #e67e22; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+        <Button fx:id="btnBulkDelete" text="Delete Selected"
+                onAction="#onBulkDelete"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnExportCsv" text="Export CSV"
+                onAction="#onExportCsv"
+                style="-fx-background-color: #2c3e50; -fx-text-fill: white;
+                       -fx-font-size: 11px; -fx-font-weight: bold;
+                       -fx-background-radius: 15; -fx-cursor: hand;
+                       -fx-padding: 5 12 5 12;"/>
+    </HBox>
+
+    <!-- Toolbar row -->
+    <HBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding: 16 20 12 20;">
+        <Button fx:id="btnAdd" text="+ Add Tool" styleClass="btn-add" onAction="#onAdd"/>
+        <Button fx:id="btnEdit" text="Edit" styleClass="btn-edit" onAction="#onEdit"/>
+        <Button fx:id="btnDelete" text="Delete" styleClass="btn-delete" onAction="#onDelete"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <TextField fx:id="tfSearch" promptText="🔍  Search tools..." styleClass="search-field"/>
+        <ProgressIndicator fx:id="progressIndicator" prefWidth="24" prefHeight="24"/>
+        <Button fx:id="btnRefresh" text="↻ Refresh" styleClass="btn-refresh" onAction="#onRefresh"/>
+    </HBox>
+
+    <!-- Filter bar: approval toggle + advanced filters + clear button -->
+    <HBox fx:id="filterBar" spacing="10" alignment="CENTER_LEFT"
+          style="-fx-padding: 0 20 10 20; -fx-background-color: white;
+                 -fx-border-color: #E6E8EF; -fx-border-width: 0 0 1 0;">
+        <!-- Approval toggle -->
+        <Label text="Show:" styleClass="filter-label"/>
+        <RadioButton fx:id="rbAll" text="All" styleClass="filter-radio"/>
+        <RadioButton fx:id="rbActiveOnly" text="Active" styleClass="filter-radio"/>
+        <RadioButton fx:id="rbPending" text="Pending" styleClass="filter-radio"/>
+
+        <Separator orientation="VERTICAL" style="-fx-padding: 4 4 4 4;"/>
+
+        <!-- Category filter -->
+        <Label text="Category:" styleClass="filter-label"/>
+        <ComboBox fx:id="cbCategoryFilter" promptText="All Categories"
+                  prefWidth="140" styleClass="filter-combo"/>
+
+        <!-- Location filter -->
+        <Label text="Location:" styleClass="filter-label"/>
+        <TextField fx:id="tfLocationFilter" promptText="Any location"
+                   prefWidth="110" styleClass="filter-field"/>
+
+        <!-- Price range -->
+        <Label text="Price:" styleClass="filter-label"/>
+        <TextField fx:id="tfMinPrice" promptText="Min" prefWidth="60" styleClass="filter-field"/>
+        <Label text="–" styleClass="filter-label"/>
+        <TextField fx:id="tfMaxPrice" promptText="Max" prefWidth="60" styleClass="filter-field"/>
+
+        <!-- Sort -->
+        <Label text="Sort:" styleClass="filter-label"/>
+        <ComboBox fx:id="cbSortBy" prefWidth="160" styleClass="filter-combo"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnClearFilters" text="✕ Clear" styleClass="btn-refresh" onAction="#onClearFilters"/>
+    </HBox>
+
+    <!-- Card wrapping the TableView -->
+    <VBox VBox.vgrow="ALWAYS" styleClass="card"
+          style="-fx-margin: 0 20 0 20;">
+        <padding>
+            <Insets top="0" right="20" bottom="0" left="20"/>
+        </padding>
+        <TableView fx:id="tableView" VBox.vgrow="ALWAYS"
+                   style="-fx-background-color: transparent; -fx-border-width: 0;">
+            <columns>
+                <TableColumn fx:id="colName" text="NAME" prefWidth="130"/>
+                <TableColumn fx:id="colDescription" text="DESCRIPTION" prefWidth="160"/>
+                <TableColumn fx:id="colPricePerDay" text="PRICE/DAY" prefWidth="85"/>
+                <TableColumn fx:id="colStockQuantity" text="STOCK" prefWidth="65"/>
+                <TableColumn fx:id="colLocation" text="LOCATION" prefWidth="100"/>
+                <TableColumn fx:id="colIsActive" text="STATUS" prefWidth="75"/>
+                <TableColumn fx:id="colImageName" text="IMAGE" prefWidth="90"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <!-- Status bar -->
+    <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="8" VBox.vgrow="NEVER">
+        <Label fx:id="lblStatus" text="Ready" styleClass="status-label"/>
+    </HBox>
+
+</VBox>

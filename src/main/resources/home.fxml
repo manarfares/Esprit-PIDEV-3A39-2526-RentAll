@@ -4,7 +4,8 @@
 <?import javafx.geometry.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.HomeController"
+            fx:id="rootPane"
+            fx:controller="tn.piapp.ui.HomeController"
             prefWidth="1100" prefHeight="700"
             style="-fx-background-color: #f8f9fa;">
 
@@ -30,6 +31,7 @@
                 <HBox spacing="20" alignment="CENTER_LEFT"
                       HBox.hgrow="ALWAYS">
                     <Button text="🏠 Stays"
+                            onAction="#handleShowStays"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
@@ -37,15 +39,25 @@
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
-                    <Button text="🔧 Services"
+                    <Button text="🔧 Tools &amp; Services"
+                            fx:id="btnToolsServices"
+                            onAction="#handleOpenToolsServices"
+                            style="-fx-background-color: transparent;
+                                   -fx-text-fill: #2c3e50; -fx-font-size: 13px;
+                                   -fx-cursor: hand; -fx-border-color: transparent;"/>
+                    <Button text="📅 Réservations"
+                            fx:id="btnReservations"
+                            onAction="#handleOpenReservations"
+                            style="-fx-background-color: transparent;
+                                   -fx-text-fill: #2c3e50; -fx-font-size: 13px;
+                                   -fx-cursor: hand; -fx-border-color: transparent;"/>
+                    <Button text="⭐ Avis"
+                            fx:id="btnAvis"
+                            onAction="#handleOpenAvis"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>
                     <Button text="🚗 Covoiturage"
-                            style="-fx-background-color: transparent;
-                                   -fx-text-fill: #2c3e50; -fx-font-size: 13px;
-                                   -fx-cursor: hand; -fx-border-color: transparent;"/>
-                    <Button text="📅 Mes réservations"
                             style="-fx-background-color: transparent;
                                    -fx-text-fill: #2c3e50; -fx-font-size: 13px;
                                    -fx-cursor: hand; -fx-border-color: transparent;"/>

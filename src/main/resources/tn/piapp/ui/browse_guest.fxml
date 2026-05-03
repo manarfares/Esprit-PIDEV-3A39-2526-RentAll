@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.lang.String?>
+
+<!--
+    Guest / ROLE_HOST_PENDING browse view.
+    Read-only card grid showing only active services and tools.
+    Controller: GuestBrowseController
+-->
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="rootPane"
+            fx:controller="tn.piapp.ui.GuestBrowseController"
+            style="-fx-background-color: #f8f9fa;">
+    <stylesheets>
+        <String fx:value="/tn/piapp/ui/styles.css"/>
+    </stylesheets>
+
+    <!-- ── Top bar ── -->
+    <top>
+        <VBox>
+            <!-- Brand strip -->
+            <Pane styleClass="gradient-strip" minHeight="4" maxHeight="4" prefHeight="4"/>
+
+            <!-- Header -->
+            <HBox styleClass="header-bar" alignment="CENTER_LEFT" spacing="10"
+                  minHeight="56" maxHeight="56" prefHeight="56">
+                <padding><Insets top="0" right="24" bottom="0" left="24"/></padding>
+
+                <StackPane styleClass="brand-icon">
+                    <Label text="R" styleClass="brand-icon-text"/>
+                </StackPane>
+                <HBox spacing="0" alignment="CENTER_LEFT">
+                    <Label text="Rent" styleClass="brand-name"/>
+                    <Label text="All" styleClass="brand-name-accent"/>
+                </HBox>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Button text="Accueil" onAction="#handleRetourAccueil"
+                        style="-fx-background-color: transparent; -fx-text-fill: #6C63FF;
+                               -fx-font-size: 12px; -fx-font-weight: bold;
+                               -fx-cursor: hand; -fx-border-color: #6C63FF;
+                               -fx-border-radius: 15; -fx-padding: 5 14 5 14;"/>
+
+                <Label fx:id="lblConnected" text="● Connected"
+                       style="-fx-text-fill: #27AE60; -fx-font-size: 12px;"/>
+            </HBox>
+
+            <!-- Search + filter bar -->
+            <HBox spacing="10" alignment="CENTER_LEFT"
+                  style="-fx-background-color: white;
+                         -fx-padding: 10 24 10 24;
+                         -fx-border-color: #E6E8EF; -fx-border-width: 0 0 1 0;">
+
+                <!-- Tab toggle: Services / Tools / Map -->
+                <ToggleButton fx:id="tbServices" text="Services"
+                              style="-fx-background-radius: 20; -fx-cursor: hand;
+                                     -fx-font-size: 12px; -fx-padding: 6 16 6 16;"/>
+                <ToggleButton fx:id="tbTools" text="Tools"
+                              style="-fx-background-radius: 20; -fx-cursor: hand;
+                                     -fx-font-size: 12px; -fx-padding: 6 16 6 16;"/>
+                <ToggleButton fx:id="tbMap" text="Map"
+                              style="-fx-background-radius: 20; -fx-cursor: hand;
+                                     -fx-font-size: 12px; -fx-padding: 6 16 6 16;"/>
+
+                <Separator orientation="VERTICAL" style="-fx-padding: 0 4 0 4;"/>
+
+                <!-- Search -->
+                <TextField fx:id="tfSearch" promptText="Search..."
+                           prefWidth="220" styleClass="search-field"/>
+
+                <!-- Location filter -->
+                <Label text="Location:" styleClass="filter-label"/>
+                <TextField fx:id="tfLocation" promptText="Any location"
+                           prefWidth="110" styleClass="filter-field"/>
+
+                <!-- Price range -->
+                <Label text="Price:" styleClass="filter-label"/>
+                <TextField fx:id="tfMinPrice" promptText="Min" prefWidth="60" styleClass="filter-field"/>
+                <Label text="–" styleClass="filter-label"/>
+                <TextField fx:id="tfMaxPrice" promptText="Max" prefWidth="60" styleClass="filter-field"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label fx:id="lblCount"
+                       style="-fx-font-size: 11px; -fx-text-fill: #95a5a6;"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ── Card scroll view (default center) ── -->
+    <center>
+        <ScrollPane fx:id="scrollCards" fitToWidth="true"
+                    style="-fx-background-color: transparent;
+                           -fx-background: transparent;
+                           -fx-border-color: transparent;">
+            <VBox spacing="20" style="-fx-padding: 24;">
+
+                <!-- Section title -->
+                <Label fx:id="lblSectionTitle"
+                       text="Services disponibles"
+                       style="-fx-font-size: 20px; -fx-font-weight: bold;
+                              -fx-text-fill: #2c3e50;"/>
+
+                <!-- Card grid — populated programmatically -->
+                <FlowPane fx:id="cardGrid"
+                          hgap="20" vgap="20"
+                          style="-fx-background-color: transparent;"/>
+
+                <!-- Empty state -->
+                <VBox fx:id="emptyState" alignment="CENTER" spacing="10"
+                      style="-fx-padding: 60 0 60 0;" visible="false" managed="false">
+                    <Label text="No results found"
+                           style="-fx-font-size: 16px; -fx-font-weight: bold;
+                                  -fx-text-fill: #7f8c8d;"/>
+                    <Label text="Try adjusting your filters"
+                           style="-fx-font-size: 12px; -fx-text-fill: #95a5a6;"/>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

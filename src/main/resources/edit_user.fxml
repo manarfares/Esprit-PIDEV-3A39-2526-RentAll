@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="tn.piapp.ui.EditUserController"
+      prefWidth="450" prefHeight="510"
+      spacing="15"
+      style="-fx-background-color: white;">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <HBox style="-fx-background-color: linear-gradient(to right, #f39c12, #e67e22);
+                 -fx-padding: 20 25 20 25;"
+          alignment="CENTER_LEFT" spacing="10">
+        <Label text="✏️" style="-fx-font-size: 20px;"/>
+        <Label text="Modifier un utilisateur"
+               style="-fx-font-size: 16px; -fx-font-weight: bold;
+                      -fx-text-fill: white;"/>
+    </HBox>
+
+    <!-- ═══════════ FORMULAIRE ═══════════ -->
+    <VBox spacing="12" style="-fx-padding: 20 25 20 25;">
+
+        <!-- Username -->
+        <VBox spacing="4">
+            <Label text="Nom d'utilisateur"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <TextField fx:id="tfUsername"
+                       style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                              -fx-background-color: #f8f9fa;
+                              -fx-border-color: #e0e0e0;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 0 12 0 12;"/>
+        </VBox>
+
+        <!-- Email -->
+        <VBox spacing="4">
+            <Label text="Email"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <TextField fx:id="tfEmail"
+                       style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                              -fx-background-color: #f8f9fa;
+                              -fx-border-color: #e0e0e0;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 0 12 0 12;"/>
+        </VBox>
+
+        <!-- Phone -->
+        <VBox spacing="4">
+            <Label text="Téléphone (optionnel)"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <TextField fx:id="tfPhone"
+                       promptText="+216 XX XXX XXX"
+                       style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                              -fx-background-color: #f8f9fa;
+                              -fx-border-color: #e0e0e0;
+                              -fx-border-radius: 8; -fx-background-radius: 8;
+                              -fx-padding: 0 12 0 12;"/>
+        </VBox>
+
+        <!-- Rôle -->
+        <VBox spacing="4">
+            <Label text="Rôle"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <ComboBox fx:id="cbRole"
+                      style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                             -fx-pref-width: 400px; -fx-background-color: #f8f9fa;
+                             -fx-border-color: #e0e0e0; -fx-border-radius: 8;
+                             -fx-background-radius: 8;"/>
+        </VBox>
+
+        <!-- Statut -->
+        <VBox spacing="4">
+            <Label text="Statut"
+                   style="-fx-font-size: 12px; -fx-font-weight: bold;
+                          -fx-text-fill: #2c3e50;"/>
+            <ComboBox fx:id="cbStatus"
+                      style="-fx-pref-height: 40px; -fx-font-size: 13px;
+                             -fx-pref-width: 400px; -fx-background-color: #f8f9fa;
+                             -fx-border-color: #e0e0e0; -fx-border-radius: 8;
+                             -fx-background-radius: 8;"/>
+        </VBox>
+
+        <!-- Message -->
+        <Label fx:id="lblMessage" text=""
+               style="-fx-font-size: 11px;"/>
+
+        <!-- Boutons -->
+        <HBox spacing="10" alignment="CENTER">
+            <Button text="✏️ Modifier"
+                    onAction="#handleModifier"
+                    style="-fx-background-color: linear-gradient(to right, #f39c12, #e67e22);
+                           -fx-text-fill: white; -fx-font-size: 13px;
+                           -fx-font-weight: bold; -fx-pref-width: 190px;
+                           -fx-pref-height: 42px; -fx-background-radius: 21;
+                           -fx-cursor: hand;"/>
+            <Button text="✖ Fermer"
+                    onAction="#handleFermer"
+                    style="-fx-background-color: white;
+                           -fx-text-fill: #e74c3c; -fx-font-size: 13px;
+                           -fx-font-weight: bold; -fx-pref-width: 190px;
+                           -fx-pref-height: 42px; -fx-background-radius: 21;
+                           -fx-cursor: hand; -fx-border-color: #e74c3c;
+                           -fx-border-radius: 21;"/>
+        </HBox>
+
+    </VBox>
+</VBox>
