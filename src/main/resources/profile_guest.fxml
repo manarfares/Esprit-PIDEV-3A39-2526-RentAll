@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.controllers.GuestController"
+            prefWidth="950" prefHeight="650"
+            style="-fx-background-color: #f8f9fa;">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <top>
+        <HBox style="-fx-background-color: linear-gradient(to right, #6C63FF, #9B59B6);
+                     -fx-padding: 15 25 15 25;"
+              alignment="CENTER_LEFT" spacing="20">
+            <Label text="🏠 RentAll"
+                   style="-fx-font-size: 22px; -fx-font-weight: bold;
+                          -fx-text-fill: white;"/>
+            <Label text="Guest"
+                   style="-fx-font-size: 11px; -fx-text-fill: #e8e0ff;
+                          -fx-background-color: rgba(255,255,255,0.2);
+                          -fx-padding: 3 8 3 8; -fx-background-radius: 10;"/>
+            <HBox HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblWelcome"
+                   style="-fx-font-size: 13px; -fx-text-fill: white;"/>
+            <Button text="🚪 Déconnexion"
+                    onAction="#handleLogout"
+                    style="-fx-background-color: rgba(255,255,255,0.2);
+                           -fx-text-fill: white; -fx-font-size: 12px;
+                           -fx-background-radius: 20; -fx-cursor: hand;
+                           -fx-padding: 8 16 8 16;"/>
+        </HBox>
+    </top>
+
+    <!-- ═══════════ CONTENU ═══════════ -->
+    <center>
+        <HBox spacing="20" style="-fx-padding: 25;">
+
+            <!-- ── Carte Profil ── -->
+            <VBox spacing="15" prefWidth="420"
+                  style="-fx-background-color: white;
+                         -fx-border-color: #e0e0e0;
+                         -fx-border-radius: 12;
+                         -fx-background-radius: 12;
+                         -fx-padding: 25;
+                         -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 2);">
+
+                <!-- Titre -->
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="👤" style="-fx-font-size: 28px;"/>
+                    <VBox>
+                        <Label text="Mon Profil"
+                               style="-fx-font-size: 18px; -fx-font-weight: bold;
+                                      -fx-text-fill: #2c3e50;"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label fx:id="lblRole"
+                                   style="-fx-font-size: 11px;
+                                          -fx-text-fill: #6C63FF;
+                                          -fx-font-weight: bold;"/>
+                            <Label text="•" style="-fx-text-fill: #95a5a6;"/>
+                            <Label fx:id="lblStatus"
+                                   style="-fx-font-size: 11px;
+                                          -fx-text-fill: #27ae60;"/>
+                            <Label fx:id="lblBadge" text=""
+                                   style="-fx-font-size: 10px;"/>
+                        </HBox>
+                    </VBox>
+                </HBox>
+
+                <Separator/>
+
+                <!-- Bouton Modifier -->
+                <Button text="✏️ Modifier mon profil"
+                        onAction="#handleOuvrirModifier"
+                        style="-fx-background-color: linear-gradient(to right, #f39c12, #e67e22);
+                               -fx-text-fill: white; -fx-font-size: 13px;
+                               -fx-font-weight: bold; -fx-pref-width: 370px;
+                               -fx-pref-height: 42px; -fx-background-radius: 21;
+                               -fx-cursor: hand;"/>
+
+                <!-- Bouton Retour Accueil -->
+                <Button text="🏠 Retour à l'accueil"
+                        onAction="#handleRetourAccueil"
+                        style="-fx-background-color: white;
+                               -fx-text-fill: #6C63FF; -fx-font-size: 13px;
+                               -fx-font-weight: bold; -fx-pref-width: 370px;
+                               -fx-pref-height: 42px; -fx-background-radius: 21;
+                               -fx-cursor: hand; -fx-border-color: #6C63FF;
+                               -fx-border-radius: 21;"/>
+
+            </VBox>
+
+            <!-- ── Carte Devenir Host ── -->
+            <VBox spacing="15" prefWidth="420"
+                  style="-fx-background-color: white;
+                         -fx-border-color: #e0e0e0;
+                         -fx-border-radius: 12;
+                         -fx-background-radius: 12;
+                         -fx-padding: 25;
+                         -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 2);">
+
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="🏠" style="-fx-font-size: 28px;"/>
+                    <Label text="Devenir Host"
+                           style="-fx-font-size: 18px; -fx-font-weight: bold;
+                                  -fx-text-fill: #2c3e50;"/>
+                </HBox>
+
+                <Separator/>
+
+                <Label text="En tant que Host, vous pourrez :"
+                       style="-fx-font-size: 13px; -fx-text-fill: #7f8c8d;"/>
+
+                <VBox spacing="10">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="✅" style="-fx-font-size: 14px;"/>
+                        <Label text="Ajouter des propriétés à louer"
+                               style="-fx-font-size: 13px; -fx-text-fill: #2c3e50;"/>
+                    </HBox>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="✅" style="-fx-font-size: 14px;"/>
+                        <Label text="Gérer vos annonces"
+                               style="-fx-font-size: 13px; -fx-text-fill: #2c3e50;"/>
+                    </HBox>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="✅" style="-fx-font-size: 14px;"/>
+                        <Label text="Voir vos réservations"
+                               style="-fx-font-size: 13px; -fx-text-fill: #2c3e50;"/>
+                    </HBox>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="✅" style="-fx-font-size: 14px;"/>
+                        <Label text="Générer des revenus"
+                               style="-fx-font-size: 13px; -fx-text-fill: #2c3e50;"/>
+                    </HBox>
+                </VBox>
+
+                <Separator/>
+
+                <HBox spacing="8" alignment="CENTER_LEFT"
+                      style="-fx-background-color: #fff8e1;
+                             -fx-padding: 12; -fx-background-radius: 8;">
+                    <Label text="⚠️" style="-fx-font-size: 14px;"/>
+                    <Label text="La demande sera examinée par un administrateur avant validation."
+                           style="-fx-font-size: 11px; -fx-text-fill: #e67e22;
+                                  -fx-wrap-text: true;"
+                           wrapText="true" prefWidth="300"/>
+                </HBox>
+
+                <!-- Bouton Devenir Host -->
+                <Button fx:id="btnDevenirHost"
+                        text="🚀 Devenir Host"
+                        onAction="#handleDevenirHost"
+                        style="-fx-background-color: linear-gradient(to right, #f39c12, #e67e22);
+                               -fx-text-fill: white; -fx-font-size: 14px;
+                               -fx-font-weight: bold; -fx-pref-width: 370px;
+                               -fx-pref-height: 42px; -fx-background-radius: 21;
+                               -fx-cursor: hand;"/>
+
+            </VBox>
+
+        </HBox>
+    </center>
+
+</BorderPane>
