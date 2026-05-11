@@ -260,7 +260,7 @@ Every property is classified into one of 5 Tunisian geographic zones based on it
 
 Built by the **ESPRIT 3A39 — RentAll team** (2025/2026).
 
-> Stays module developed by **[Your Name]**
+> Stays module developed by **Rent ALL**
 
 ---
 
